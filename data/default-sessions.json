@@ -1,0 +1,450 @@
+[
+  {
+    "id": "session-1789467764286-1m4e5",
+    "userId": "user-1",
+    "topicId": "9",
+    "topic": "Akankah AI mengubah cara kita belajar?",
+    "category": "Technology",
+    "difficulty": "Hard",
+    "prepTime": 30,
+    "speakingDuration": 60,
+    "duration": 47,
+    "date": "2026-09-15T10:22:44.286Z",
+    "audioUrl": "/uploads/rec-1789467749409-422024.webm",
+    "overallScore": 84,
+    "scores": {
+      "content": 88,
+      "fluency": 84,
+      "articulation": 86,
+      "pace": 85,
+      "expression": 78
+    },
+    "feedback": {
+      "whatYouDidWell": [
+        "Struktur bicaramu runtut banget, kamu berhasil menyampaikan sisi positif sekaligus mengingatkan risiko bergantung sama AI dengan sangat seimbang.",
+        "Kecepatan bicaramu juga pas dan pengucapan tiap katanya jelas, jadi pesannya gampang ditangkap."
+      ],
+      "whatToImprove": [
+        "Intonasi nadamu masih terasa agak datar di beberapa bagian, coba naik-turunkan nada suara biar bicaramu terasa lebih berenergi dan hidup."
+      ],
+      "nextStep": "Coba ulangi rekam kalimat tentang pengalaman pribadimu tadi, tapi beri penekanan nada yang lebih bersemangat di kata-kata resensinya!"
+    },
+    "engine": "Gemini AI (gemini-3.6-flash)",
+    "language": "id"
+  },
+  {
+    "id": "session-1789467467003-ejqpo",
+    "userId": "user-1",
+    "topicId": "31",
+    "topic": "Apa makanan favoritmu?",
+    "category": "Fun",
+    "difficulty": "Easy",
+    "prepTime": 60,
+    "speakingDuration": 60,
+    "duration": 35,
+    "date": "2026-09-15T10:17:47.003Z",
+    "audioUrl": "/uploads/rec-1789467427276-898859.webm",
+    "overallScore": 75,
+    "scores": {
+      "content": 85,
+      "fluency": 72,
+      "articulation": 78,
+      "pace": 70,
+      "expression": 72
+    },
+    "feedback": {
+      "whatYouDidWell": [
+        "Struktur ceritamu udah oke banget. Kamu langsung sebutin nasi padang dan ngejelasin lauk-lauk favoritmu dengan runtut.",
+        "Gaya bicaramu santai dan natural banget, bikin yang denger merasa kayak lagi diajak ngobrol langsung."
+      ],
+      "whatToImprove": [
+        "Menurutku, jeda di antara kata masih agak terlalu lama dan ada beberapa pengulangan kata tanya. Coba deh buat lebih mengalir biar nggak terasa putus-putus.",
+        "Biar makin seru, coba tambahin sedikit energi dan keceriaan di suaramu. Kalau ngomongin makanan enak, ekspresi suaramu harusnya ikutan semangat juga!"
+      ],
+      "nextStep": "Coba rekam lagi suara kamu selama 30 detik, tapi kali ini bayangkan kamu lagi cerita ke sahabat dekatmu dengan nada yang lebih ceria dan penuh energi."
+    },
+    "engine": "Gemini AI (gemini-3.5-flash)",
+    "language": "id"
+  },
+  {
+    "id": "session-1789461970706-7xmm1",
+    "userId": "user-1",
+    "topicId": "edu-1",
+    "topic": "Haruskah siswa diizinkan menggunakan AI untuk tugas sekolah?",
+    "category": "Education",
+    "difficulty": "Easy",
+    "prepTime": 30,
+    "speakingDuration": 60,
+    "duration": 32,
+    "date": "2026-09-15T08:46:10.706Z",
+    "audioUrl": "/uploads/rec-1789461940087-709075.webm",
+    "overallScore": 85,
+    "scores": {
+      "content": 90,
+      "fluency": 88,
+      "articulation": 85,
+      "pace": 88,
+      "expression": 75
+    },
+    "feedback": {
+      "whatYouDidWell": [
+        "Penyampaian opini kamu terstruktur banget! Kamu berhasil ngejelasin sisi positif dan negatif penggunaan AI dengan sangat seimbang dan mudah dipahami.",
+        "Tempo bicara kamu juga udah pas banget, nggak terburu-buru dan nggak lambat, jadi enak banget didengar dari awal sampai akhir."
+      ],
+      "whatToImprove": [
+        "Aku perhatiin kamu sempat gonta-ganti kata ganti orang, dari 'saya', 'aku', sampai 'gua'. Lain kali, coba konsisten pakai satu kata ganti aja dari awal biar penyampaianmu terasa lebih mengalir.",
+        "Intonasi suaramu masih agak datar nih. Coba berikan sedikit penekanan atau variasi nada pada kata-kata penting seperti 'tidak benar-benar belajar' biar pesan yang kamu sampaikan terasa lebih kuat."
+      ],
+      "nextStep": "Coba rekam ulang opini ini dengan membayangkan kamu sedang mengobrol langsung dengan teman dekatmu, lalu gunakan kata ganti 'aku' secara konsisten dengan nada bicara yang lebih ekspresif."
+    },
+    "engine": "Gemini AI (gemini-3.5-flash)",
+    "language": "id"
+  },
+  {
+    "id": "session-1789461817146-3vr6v",
+    "userId": "user-1",
+    "topicId": "tech-1",
+    "topic": "Akankah AI membuat siswa lebih produktif atau justru lebih bergantung?",
+    "category": "Technology",
+    "difficulty": "Medium",
+    "prepTime": 30,
+    "speakingDuration": 60,
+    "duration": 44,
+    "date": "2026-09-15T08:43:37.146Z",
+    "audioUrl": "/uploads/rec-1789461782258-83888.webm",
+    "overallScore": 81,
+    "scores": {
+      "content": 88,
+      "fluency": 80,
+      "articulation": 82,
+      "pace": 78,
+      "expression": 75
+    },
+    "feedback": {
+      "whatYouDidWell": [
+        "Struktur penjelasan kamu udah oke banget! Kamu berhasil ngejelasin dua sisi, yaitu manfaat AI dan pentingnya nggak ketergantungan, dengan sangat runtut.",
+        "Penyampaian ide kamu juga gampang dipahami karena pilihan bahasanya sederhana dan langsung ke intinya."
+      ],
+      "whatToImprove": [
+        "Biar makin asyik didengar, coba deh variasiin intonasi nadamu karena di beberapa bagian terdengar agak datar seperti sedang membaca teks.",
+        "Kecepatan bicaranya bisa sedikit dinaikkan ya, biar terdengar lebih berenergi dan meminimalkan jeda kosong yang terlalu lama di tengah kalimat."
+      ],
+      "nextStep": "Coba latihan rekam suara lagi dengan membayangkan kamu lagi cerita langsung ke teman dekatmu, lalu kasih penekanan nada yang lebih kuat pada kata-kata kunci seperti 'membantu' atau 'bergantung'."
+    },
+    "engine": "Gemini AI (gemini-3.5-flash)",
+    "language": "id"
+  },
+  {
+    "id": "session-1789461219161-p4hjx",
+    "userId": "user-1",
+    "topicId": "custom",
+    "topic": "Apakah robot AI akan menggantikan guru di masa depan?",
+    "category": "Technology",
+    "difficulty": "Medium",
+    "prepTime": 30,
+    "speakingDuration": 60,
+    "duration": 35,
+    "date": "2026-09-15T08:33:39.161Z",
+    "audioUrl": "/uploads/rec-1789461207719-811756.wav",
+    "overallScore": 82,
+    "scores": {
+      "content": 85,
+      "fluency": 80,
+      "articulation": 84,
+      "pace": 82,
+      "expression": 78
+    },
+    "feedback": {
+      "whatYouDidWell": [
+        "Gagasan yang kamu sampaikan udah lumayan jelas dan langsung menjawab topik tentang peran guru dan AI.",
+        "Pengucapan kata-katamu juga jernih banget, bikin ide utama kamu gampang dipahami sama pendengar."
+      ],
+      "whatToImprove": [
+        "Coba mainkan variasi nada bicaramu biar nggak kelewat datar, terutama pas nyebutin poin-poin penting.",
+        "Kecepatan bicaramu di pertengahan agak sedikit terlalu cepat, jadi beri jeda singkat biar alurnya lebih santai."
+      ],
+      "nextStep": "Coba rekaman ulang pembuka materi ini, lalu beri jeda napas 1-2 detik tepat sebelum kamu masuk ke alasan utamamu."
+    },
+    "engine": "Gemini AI (gemini-3.6-flash)",
+    "language": "id"
+  },
+  {
+    "id": "session-1789461171675-g3sg8",
+    "userId": "user-1",
+    "topicId": "edu-1",
+    "topic": "Pentingnya Mengatur Waktu untuk Pelajar SMA",
+    "category": "Education",
+    "difficulty": "Medium",
+    "prepTime": 30,
+    "speakingDuration": 60,
+    "duration": 45,
+    "date": "2026-09-15T08:32:51.675Z",
+    "audioUrl": "/audio/sample-1.wav",
+    "overallScore": 83,
+    "scores": {
+      "content": 84,
+      "fluency": 76,
+      "articulation": 86,
+      "pace": 86,
+      "expression": 80
+    },
+    "feedback": {
+      "whatYouDidWell": [
+        "Pelafalan tiap kata cukup tegas, jadi pendengar nggak kesulitan menyimak.",
+        "Ritme bicaramu stabil, jadi pendengar merasa nyaman menyimak sampai selesai.",
+        "Poin yang kamu sampaikan fokus dan nggak bertele-tele."
+      ],
+      "whatToImprove": [
+        "Di beberapa bagian kamu sempat berhenti agak lama sebelum lanjut kalimat. Coba gunakan jeda yang lebih singkat agar alurnya makin mulus.",
+        "Coba naik-turunkan intonasi di bagian penting supaya cara bicaramu nggak terdengar datar."
+      ],
+      "nextStep": "Latih 2 kalimat intimu di depan cermin dengan senyum santai supaya suaramu terdengar lebih lepas dan bersahabat."
+    },
+    "engine": "AI Public Speaking Coach",
+    "language": "id"
+  },
+  {
+    "id": "session-1789459917884-wz467",
+    "userId": "user-1",
+    "topicId": "edu-2",
+    "topic": "Apa satu masalah di sekolah atau kampus Anda yang ingin Anda selesaikan?",
+    "category": "Education",
+    "difficulty": "Medium",
+    "prepTime": 30,
+    "speakingDuration": 60,
+    "duration": 42,
+    "date": "2026-09-15T08:11:57.884Z",
+    "audioUrl": "/uploads/rec-1789459914558-339954.webm",
+    "overallScore": 84,
+    "scores": {
+      "content": 86,
+      "fluency": 80,
+      "articulation": 85,
+      "pace": 85,
+      "expression": 84
+    },
+    "feedback": {
+      "whatYouDidWell": [
+        "Relevansi argumen dengan kategori Education sangat terarah dan tidak bertele-tele.",
+        "Tempo bicara stabil, tidak terburu-buru, dan mencerminkan ketenangan dalam berpikir.",
+        "Pilihan diksi yang digunakan tepat sasaran untuk konteks public speaking."
+      ],
+      "whatToImprove": [
+        "Perhatikan kestabilan napas diafragma agar ujung kalimat tidak terdengar memelan.",
+        "Gunakan transisi kata yang lebih variatif seperti 'menariknya', 'di sisi lain', atau 'sebagai dampaknya'."
+      ],
+      "nextStep": "Latihlah pengulangan kalimat pembuka sebanyak tiga kali dengan intonasi berbeda untuk melatih fleksibilitas modulasi suara Anda."
+    },
+    "engine": "AI Public Speaking Coach",
+    "language": "id"
+  },
+  {
+    "id": "session-1789368749385-d2dob",
+    "userId": "user-1",
+    "topicId": "tech-1",
+    "topic": "Akankah AI membuat siswa lebih produktif atau justru lebih bergantung?",
+    "category": "Technology",
+    "difficulty": "Medium",
+    "prepTime": 30,
+    "speakingDuration": 60,
+    "duration": 49,
+    "date": "2026-09-14T06:52:29.385Z",
+    "audioUrl": "/uploads/rec-1789368746554-957150.webm",
+    "overallScore": 82,
+    "scores": {
+      "content": 85,
+      "fluency": 76,
+      "articulation": 82,
+      "pace": 86,
+      "expression": 83
+    },
+    "feedback": {
+      "whatYouDidWell": [
+        "Relevansi argumen dengan kategori Technology sangat terarah dan tidak bertele-tele.",
+        "Tempo bicara stabil, tidak terburu-buru, dan mencerminkan ketenangan dalam berpikir.",
+        "Pilihan diksi yang digunakan tepat sasaran untuk konteks public speaking."
+      ],
+      "whatToImprove": [
+        "Perhatikan kestabilan napas diafragma agar ujung kalimat tidak terdengar memelan.",
+        "Gunakan transisi kata yang lebih variatif seperti 'menariknya', 'di sisi lain', atau 'sebagai dampaknya'."
+      ],
+      "nextStep": "Latihlah pengulangan kalimat pembuka sebanyak tiga kali dengan intonasi berbeda untuk melatih fleksibilitas modulasi suara Anda."
+    },
+    "engine": "AI Public Speaking Coach",
+    "language": "id"
+  },
+  {
+    "id": "session-1789368638721-f28uk",
+    "userId": "user-1",
+    "topicId": "life-1",
+    "topic": "Apa kebiasaan harian yang paling mengubah cara pandang Anda terhadap hidup?",
+    "category": "Daily Life",
+    "difficulty": "Easy",
+    "prepTime": 30,
+    "speakingDuration": 60,
+    "duration": 60,
+    "date": "2026-09-14T06:50:38.721Z",
+    "audioUrl": "/uploads/rec-1789368635450-992308.webm",
+    "overallScore": 82,
+    "scores": {
+      "content": 85,
+      "fluency": 77,
+      "articulation": 83,
+      "pace": 81,
+      "expression": 81
+    },
+    "feedback": {
+      "whatYouDidWell": [
+        "Relevansi argumen dengan kategori Daily Life sangat terarah dan tidak bertele-tele.",
+        "Tempo bicara stabil, tidak terburu-buru, dan mencerminkan ketenangan dalam berpikir.",
+        "Pilihan diksi yang digunakan tepat sasaran untuk konteks public speaking."
+      ],
+      "whatToImprove": [
+        "Perhatikan kestabilan napas diafragma agar ujung kalimat tidak terdengar memelan.",
+        "Gunakan transisi kata yang lebih variatif seperti 'menariknya', 'di sisi lain', atau 'sebagai dampaknya'."
+      ],
+      "nextStep": "Latihlah pengulangan kalimat pembuka sebanyak tiga kali dengan intonasi berbeda untuk melatih fleksibilitas modulasi suara Anda."
+    },
+    "engine": "AI Public Speaking Coach",
+    "language": "id"
+  },
+  {
+    "id": "session-1789368103286-o5xsc",
+    "userId": "user-1",
+    "topicId": "custom",
+    "topic": "Haruskah AI menggantikan guru?",
+    "category": "Education",
+    "difficulty": "Medium",
+    "prepTime": 30,
+    "speakingDuration": 60,
+    "duration": 52,
+    "date": "2026-09-14T06:41:43.286Z",
+    "audioUrl": "/uploads/rec-1789368103272-770300.wav",
+    "overallScore": 83,
+    "scores": {
+      "content": 86,
+      "fluency": 79,
+      "articulation": 81,
+      "pace": 84,
+      "expression": 82
+    },
+    "feedback": {
+      "whatYouDidWell": [
+        "Penyampaian gagasan mengenai topik \"Haruskah AI menggantikan guru?\" terstruktur secara jelas dengan pembukaan yang lugas.",
+        "Artikulasi vokal dan pengucapan kata kunci terdengar jernih dan mudah dipahami.",
+        "Variasi nada bicara cukup dinamis sehingga pendengar dapat mengikuti alur berpikir dengan nyaman."
+      ],
+      "whatToImprove": [
+        "Kurangi jeda ragu saat berpindah ke poin pembuktian di paruh kedua pembicaraan.",
+        "Gunakan variasi volume atau penekanan kata (vocal punch) saat menyampaikan pesan puncak."
+      ],
+      "nextStep": "Cobalah teknik jeda 1 detik setelah setiap argumen utama untuk memberi waktu pendengar mencerna inti pemikiran sebelum berpindah topik."
+    },
+    "engine": "AI Public Speaking Coach",
+    "language": "id"
+  },
+  {
+    "id": "session-1789368053035-z3q2q",
+    "userId": "user-1",
+    "topicId": "custom",
+    "topic": "Should social media have an age limit?",
+    "category": "Society",
+    "difficulty": "Medium",
+    "prepTime": 30,
+    "speakingDuration": 60,
+    "duration": 45,
+    "date": "2026-09-14T06:40:53.036Z",
+    "audioUrl": "/uploads/rec-1789368053022-648983.wav",
+    "overallScore": 83,
+    "scores": {
+      "content": 84,
+      "fluency": 84,
+      "articulation": 84,
+      "pace": 80,
+      "expression": 80
+    },
+    "feedback": {
+      "whatYouDidWell": [
+        "Well-structured framing on the prompt \"Should social media have an age limit?\" with a distinct and confident opening.",
+        "Consonants and core ideas were enunciated clearly, allowing listeners to follow smoothly.",
+        "Steady vocal cadence without rushing through the foundational argument."
+      ],
+      "whatToImprove": [
+        "Minimize brief hesitations during the transition into your secondary evidence.",
+        "Add subtle upward vocal inflections when asking rhetorical questions to keep engagement high."
+      ],
+      "nextStep": "Practice taking a deliberate 1-second pause after every thesis statement before expanding into details."
+    },
+    "engine": "AI Public Speaking Coach",
+    "language": "en"
+  },
+  {
+    "id": "session-demo-1",
+    "userId": "user-1",
+    "topicId": "tech-1",
+    "topic": "Will AI make students more productive or more dependent?",
+    "topicId_id": "Akankah AI membuat siswa lebih produktif atau justru lebih bergantung?",
+    "category": "Technology",
+    "difficulty": "Medium",
+    "prepTime": 30,
+    "speakingDuration": 60,
+    "duration": 58,
+    "date": "2026-09-13T10:15:00.000Z",
+    "audioUrl": "/audio/sample-1.wav",
+    "overallScore": 84,
+    "scores": {
+      "content": 86,
+      "fluency": 82,
+      "articulation": 85,
+      "pace": 84,
+      "expression": 83
+    },
+    "feedback": {
+      "whatYouDidWell": [
+        "Well-structured opening that defined both productivity benefits and cognitive dependency risks clearly.",
+        "Smooth transitions between arguments with natural conversational signposting.",
+        "Confident vocal tone with crisp consonant pronunciation."
+      ],
+      "whatToImprove": [
+        "Slight tendency to speed up when reaching complex points around second 40.",
+        "Reduce occasional filler words like 'umm' before delivering your central conclusion."
+      ],
+      "nextStep": "Try pausing for 1 full second after every key assertion to let the argument sink in before moving to your next point."
+    },
+    "language": "en"
+  },
+  {
+    "id": "session-demo-2",
+    "userId": "user-1",
+    "topicId": "edu-1",
+    "topic": "Should students be allowed to use AI for school assignments?",
+    "topicId_id": "Haruskah siswa diizinkan menggunakan AI untuk tugas sekolah?",
+    "category": "Education",
+    "difficulty": "Easy",
+    "prepTime": 15,
+    "speakingDuration": 60,
+    "duration": 54,
+    "date": "2026-09-12T14:40:00.000Z",
+    "audioUrl": "/audio/sample-2.wav",
+    "overallScore": 79,
+    "scores": {
+      "content": 82,
+      "fluency": 76,
+      "articulation": 80,
+      "pace": 78,
+      "expression": 79
+    },
+    "feedback": {
+      "whatYouDidWell": [
+        "Clear stance supported by practical examples of classroom AI guidelines.",
+        "Good vocal energy and engaging opening question to hook listeners."
+      ],
+      "whatToImprove": [
+        "Two mid-sentence hesitations when pivoting toward counter-arguments.",
+        "Vary your pitch more when transitioning from problem description to proposed solution."
+      ],
+      "nextStep": "Practice breathing steadily from the diaphragm to maintain vocal cadence during multi-part arguments."
+    },
+    "language": "en"
+  }
+]

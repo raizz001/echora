@@ -4,47 +4,187 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const IS_VERCEL = Boolean(process.env.VERCEL);
 
-// Ensure required directories exist
-const dataDir = path.join(__dirname, 'data');
-const uploadsDir = path.join(__dirname, 'uploads');
+// Base directory configuration:
+// On Vercel / AWS Lambda, /var/task is strictly read-only.
+// Runtime-writable directories (uploads, mutated json data) MUST reside in os.tmpdir() (/tmp).
+// On local development, we keep using ./data and ./uploads directly in the project root.
 const publicDir = path.join(__dirname, 'public');
+const bundledDataDir = path.join(__dirname, 'data');
 
-[dataDir, uploadsDir, publicDir].forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+const dataDir = IS_VERCEL
+  ? path.join(os.tmpdir(), 'echora-data')
+  : bundledDataDir;
+
+const uploadsDir = IS_VERCEL
+  ? path.join(os.tmpdir(), 'echora-uploads')
+  : path.join(__dirname, 'uploads');
+
+// Safe directory creation that never crashes the process
+function ensureDirExists(dirPath) {
+  try {
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+  } catch (err) {
+    console.warn(`[Storage] Warning: Failed to ensure directory ${dirPath}: ${err.message}`);
   }
-});
+}
 
-// Helper for file persistence
+ensureDirExists(dataDir);
+ensureDirExists(uploadsDir);
+
+// File paths
+const topicsFile = path.join(bundledDataDir, 'topics.json');
+const sessionsFile = path.join(dataDir, 'sessions.json');
+const profileFile = path.join(dataDir, 'profile.json');
+
+const bundledSessionsFile = path.join(bundledDataDir, 'sessions.json');
+const defaultSessionsFile = path.join(bundledDataDir, 'default-sessions.json');
+
+const bundledProfileFile = path.join(bundledDataDir, 'profile.json');
+const defaultProfileFile = path.join(bundledDataDir, 'default-profile.json');
+
+// In-memory cache to guarantee fast response and resilient fallback in serverless environments
+let inMemorySessions = null;
+let inMemoryProfile = null;
+
+function loadInitialProfile() {
+  // 1. Try writable dataDir (profile.json)
+  try {
+    if (fs.existsSync(profileFile)) {
+      const data = JSON.parse(fs.readFileSync(profileFile, 'utf-8'));
+      if (data && typeof data === 'object') return data;
+    }
+  } catch (e) {}
+
+  // 2. Try bundled profile.json if exists
+  try {
+    if (fs.existsSync(bundledProfileFile)) {
+      const data = JSON.parse(fs.readFileSync(bundledProfileFile, 'utf-8'));
+      if (data && typeof data === 'object') return data;
+    }
+  } catch (e) {}
+
+  // 3. Try default-profile.json if exists
+  try {
+    if (fs.existsSync(defaultProfileFile)) {
+      const data = JSON.parse(fs.readFileSync(defaultProfileFile, 'utf-8'));
+      if (data && typeof data === 'object') return data;
+    }
+  } catch (e) {}
+
+  // 4. Default profile fallback
+  return { name: 'Rais', title: 'Public Speaking Learner' };
+}
+
+function loadInitialSessions() {
+  // 1. Try writable dataDir (sessions.json)
+  try {
+    if (fs.existsSync(sessionsFile)) {
+      const data = JSON.parse(fs.readFileSync(sessionsFile, 'utf-8'));
+      if (Array.isArray(data)) return data;
+    }
+  } catch (e) {}
+
+  // 2. Try bundled sessions.json if exists
+  try {
+    if (fs.existsSync(bundledSessionsFile)) {
+      const data = JSON.parse(fs.readFileSync(bundledSessionsFile, 'utf-8'));
+      if (Array.isArray(data)) return data;
+    }
+  } catch (e) {}
+
+  // 3. Try default-sessions.json if exists
+  try {
+    if (fs.existsSync(defaultSessionsFile)) {
+      const data = JSON.parse(fs.readFileSync(defaultSessionsFile, 'utf-8'));
+      if (Array.isArray(data)) return data;
+    }
+  } catch (e) {}
+
+  // 4. Default fallback
+  return [];
+}
+
+function getProfile() {
+  if (!inMemoryProfile) {
+    inMemoryProfile = loadInitialProfile();
+    // Persist to writable dataDir if possible
+    saveProfile(inMemoryProfile);
+  }
+  return inMemoryProfile;
+}
+
+function saveProfile(data) {
+  inMemoryProfile = data;
+  try {
+    ensureDirExists(dataDir);
+    fs.writeFileSync(profileFile, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn(`[Storage] Warning: Could not write profile to ${profileFile}: ${err.message}`);
+  }
+}
+
+function getSessions() {
+  if (!inMemorySessions) {
+    inMemorySessions = loadInitialSessions();
+    // Persist to writable dataDir if possible
+    saveSessions(inMemorySessions);
+  }
+  return inMemorySessions;
+}
+
+function saveSessions(data) {
+  inMemorySessions = data;
+  try {
+    ensureDirExists(dataDir);
+    fs.writeFileSync(sessionsFile, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn(`[Storage] Warning: Could not write sessions to ${sessionsFile}: ${err.message}`);
+  }
+}
+
+function readTopics() {
+  try {
+    if (fs.existsSync(topicsFile)) {
+      const raw = fs.readFileSync(topicsFile, 'utf-8');
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error(`Error reading ${topicsFile}:`, err.message);
+  }
+  return [];
+}
+
+// Helper for generic file persistence (safe read/write without read side-effect errors)
 function readJson(filePath, defaultValue) {
   try {
     if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, JSON.stringify(defaultValue, null, 2), 'utf-8');
       return defaultValue;
     }
     const raw = fs.readFileSync(filePath, 'utf-8');
     return JSON.parse(raw);
   } catch (err) {
-    console.error(`Error reading ${filePath}:`, err);
+    console.warn(`Error reading ${filePath}:`, err.message);
     return defaultValue;
   }
 }
 
 function writeJson(filePath, data) {
   try {
+    const parentDir = path.dirname(filePath);
+    ensureDirExists(parentDir);
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
   } catch (err) {
-    console.error(`Error writing ${filePath}:`, err);
+    console.warn(`Error writing ${filePath}:`, err.message);
   }
 }
-
-const topicsFile = path.join(dataDir, 'topics.json');
-const sessionsFile = path.join(dataDir, 'sessions.json');
-const profileFile = path.join(dataDir, 'profile.json');
 
 // Middleware
 app.use(cors());
@@ -55,9 +195,27 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(publicDir));
 app.use('/uploads', express.static(uploadsDir));
 
+// Fallback route for /uploads when an audio file does not exist on disk
+// (e.g. in ephemeral Vercel Serverless Function instances or seed demo sessions)
+app.get('/uploads/:filename', (req, res) => {
+  const safeFilename = path.basename(req.params.filename);
+  const localTarget = path.join(uploadsDir, safeFilename);
+  if (fs.existsSync(localTarget)) {
+    return res.sendFile(localTarget);
+  }
+  // Graceful fallback to sample audio so player doesn't fail
+  const sampleAudio = path.join(publicDir, 'audio', 'sample-1.wav');
+  if (fs.existsSync(sampleAudio)) {
+    res.setHeader('Content-Type', 'audio/wav');
+    return res.sendFile(sampleAudio);
+  }
+  res.status(404).json({ error: 'Audio file not found' });
+});
+
 // Multer setup for voice recordings
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
+    ensureDirExists(uploadsDir);
     cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
@@ -76,6 +234,7 @@ const upload = multer({
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
+    environment: IS_VERCEL ? 'vercel-serverless' : 'localhost',
     hasGeminiKey: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 5),
     timestamp: new Date().toISOString()
   });
@@ -83,13 +242,13 @@ app.get('/api/health', (req, res) => {
 
 // GET /api/topics
 app.get('/api/topics', (req, res) => {
-  const topics = readJson(topicsFile, []);
+  const topics = readTopics();
   res.json(topics);
 });
 
 // GET /api/topics/random
 app.get('/api/topics/random', (req, res) => {
-  const topics = readJson(topicsFile, []);
+  const topics = readTopics();
   const { category, difficulty } = req.query;
   let pool = topics;
   if (category && category.toLowerCase() !== 'all') {
@@ -105,8 +264,8 @@ app.get('/api/topics/random', (req, res) => {
 
 // GET /api/profile
 app.get('/api/profile', (req, res) => {
-  const profile = readJson(profileFile, { name: 'Alex Pratama', title: 'Public Speaking Learner' });
-  const sessions = readJson(sessionsFile, []);
+  const profile = getProfile();
+  const sessions = getSessions();
   const totalDuration = sessions.reduce((acc, s) => acc + (Number(s.duration) || 0), 0);
   
   res.json({
@@ -122,23 +281,23 @@ app.put('/api/profile', (req, res) => {
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Name is required' });
   }
-  const current = readJson(profileFile, { name: 'Alex Pratama', title: 'Public Speaking Learner' });
+  const current = getProfile();
   current.name = name.trim();
-  writeJson(profileFile, current);
+  saveProfile(current);
   res.json(current);
 });
 
 // GET /api/sessions
 app.get('/api/sessions', (req, res) => {
-  const sessions = readJson(sessionsFile, []);
+  const sessions = getSessions();
   // Return sorted newest first
-  sessions.sort((a, b) => new Date(b.date) - new Date(a.date));
-  res.json(sessions);
+  const sorted = [...sessions].sort((a, b) => new Date(b.date) - new Date(a.date));
+  res.json(sorted);
 });
 
 // GET /api/sessions/:id
 app.get('/api/sessions/:id', (req, res) => {
-  const sessions = readJson(sessionsFile, []);
+  const sessions = getSessions();
   const session = sessions.find(s => s.id === req.params.id);
   if (!session) {
     return res.status(404).json({ error: 'Session not found' });
@@ -148,22 +307,24 @@ app.get('/api/sessions/:id', (req, res) => {
 
 // DELETE /api/sessions/:id
 app.delete('/api/sessions/:id', (req, res) => {
-  const sessions = readJson(sessionsFile, []);
+  const sessions = getSessions();
   const index = sessions.findIndex(s => s.id === req.params.id);
   if (index === -1) {
     return res.status(404).json({ error: 'Session not found' });
   }
   
   const [removed] = sessions.splice(index, 1);
-  writeJson(sessionsFile, sessions);
+  saveSessions(sessions);
 
   // Clean up audio file if within uploads directory
   if (removed.audioUrl && removed.audioUrl.startsWith('/uploads/')) {
     const filename = path.basename(removed.audioUrl);
     const filePath = path.join(uploadsDir, filename);
-    if (fs.existsSync(filePath)) {
-      try { fs.unlinkSync(filePath); } catch (e) { /* ignore */ }
-    }
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch (e) { /* ignore */ }
   }
 
   res.json({ success: true, removedId: removed.id });
@@ -607,9 +768,9 @@ app.post('/api/sessions/analyze', upload.single('audio'), async (req, res) => {
     };
 
     // Save session
-    const sessions = readJson(sessionsFile, []);
+    const sessions = getSessions();
     sessions.unshift(newSession);
-    writeJson(sessionsFile, sessions);
+    saveSessions(sessions);
 
     res.status(201).json(newSession);
   } catch (error) {
@@ -626,11 +787,17 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`=========================================`);
-  console.log(`  ECHORA AI Speaking Coach Server`);
-  console.log(`  Running on http://localhost:${PORT}`);
-  console.log(`  Gemini AI API Key: ${process.env.GEMINI_API_KEY ? 'Configured (Active)' : 'Not set (Using Intelligent Coach Engine)'}`);
-  console.log(`=========================================`);
-});
+// Start Server (only when run directly or in non-Vercel environment)
+if (require.main === module || !IS_VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`=========================================`);
+    console.log(`  ECHORA AI Speaking Coach Server`);
+    console.log(`  Running on http://localhost:${PORT}`);
+    console.log(`  Environment: ${IS_VERCEL ? 'Vercel Serverless' : 'Localhost'}`);
+    console.log(`  Gemini AI API Key: ${process.env.GEMINI_API_KEY ? 'Configured (Active)' : 'Not set (Using Intelligent Coach Engine)'}`);
+    console.log(`=========================================`);
+  });
+}
+
+// Export Express app for Vercel Serverless Function
+module.exports = app;
