@@ -8,7 +8,7 @@ const os = require('os');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const IS_VERCEL = Boolean(process.env.VERCEL);
+const IS_VERCEL = Boolean(process.env.VERCEL || process.env.VERCEL_ENV || process.env.NOW_REGION);
 
 // Base directory configuration:
 // On Vercel / AWS Lambda, /var/task is strictly read-only.
@@ -779,6 +779,11 @@ app.post('/api/sessions/analyze', upload.single('audio'), async (req, res) => {
   }
 });
 
+// Explicit route for root GET /
+app.get('/', (req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+
 // Fallback to index.html for SPA client-side routes
 app.get('*', (req, res) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/audio')) {
@@ -787,13 +792,13 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 
-// Start Server (only when run directly or in non-Vercel environment)
-if (require.main === module || !IS_VERCEL) {
+// Start Server (strictly only when running locally, never on Vercel Serverless Functions)
+if (!IS_VERCEL) {
   app.listen(PORT, () => {
     console.log(`=========================================`);
     console.log(`  ECHORA AI Speaking Coach Server`);
     console.log(`  Running on http://localhost:${PORT}`);
-    console.log(`  Environment: ${IS_VERCEL ? 'Vercel Serverless' : 'Localhost'}`);
+    console.log(`  Environment: Localhost`);
     console.log(`  Gemini AI API Key: ${process.env.GEMINI_API_KEY ? 'Configured (Active)' : 'Not set (Using Intelligent Coach Engine)'}`);
     console.log(`=========================================`);
   });
