@@ -1,0 +1,26 @@
+{
+  "name": "echora",
+  "version": "1.0.0",
+  "description": "ECHORA - AI-Powered Public Speaking Practice Platform",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "public-speaking",
+    "ai",
+    "gemini",
+    "voice",
+    "speech-analysis"
+  ],
+  "author": "ECHORA Team",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}
