@@ -18,22 +18,25 @@
 <body>
   <div class="ambient-grain"></div>
 
-  <!-- Navigation Bar -->
+  <!-- Navigation Bar — Top Center Floating Minimal Pill -->
   <header class="navbar">
     <div class="nav-brand" id="nav-brand-logo">
       <div class="brand-symbol">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2">
           <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
           <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
           <line x1="12" x2="12" y1="19" y2="22"></line>
         </svg>
       </div>
       <span class="brand-title">ECHORA</span>
-      <span class="brand-badge" data-i18n="brandTagline">Speak. Reflect. Evolve.</span>
     </div>
 
     <div class="nav-actions">
-      <button class="nav-link" id="nav-btn-dashboard" data-i18n="navDashboard">Dashboard</button>
+      <button class="nav-link nav-live-link" id="nav-btn-live-interview">
+        <span class="live-pulse-dot"></span>
+        <span data-i18n="navLiveInterview">TalkWith Coach</span>
+      </button>
+      <button class="nav-link" id="nav-btn-dashboard" data-i18n="navDashboard">Practice</button>
       <button class="nav-link" id="nav-btn-history" data-i18n="navHistory">History</button>
       <button class="nav-link" id="nav-btn-profile" data-i18n="navProfile">Profile</button>
       
@@ -43,7 +46,7 @@
         <button class="lang-btn" id="lang-btn-id" data-lang="id">ID</button>
       </div>
 
-      <button class="btn-start-nav" id="nav-btn-start" data-i18n="navStart">Start Speaking</button>
+      <button class="btn-start-nav" id="nav-btn-start" data-i18n="navStart">Start</button>
     </div>
   </header>
 
@@ -51,88 +54,58 @@
   <main class="app-viewport">
 
     <!-- ====================================================================
-         VIEW 1: LANDING PAGE
+         VIEW 1: UNIFIED STUDIO HOMEPAGE (REFERENCE REDESIGN)
+         1. Hero
+         2. Main Practice Card
+         3. Feature Overview
+         4. TalkWith Coach Showcase
+         5. Speaking History
+         6. Footer
          ==================================================================== -->
     <section id="view-landing" class="view-section active">
-      <div class="hero-container">
-        <!-- Abstract subtle audio waveform background -->
+      <!-- 1. HERO -->
+      <div class="hero-container" id="section-hero">
         <canvas id="hero-wave-canvas" class="hero-wave-canvas"></canvas>
-
         <div class="hero-content">
-          <h1 class="hero-title" data-i18n="heroTitle">ECHORA</h1>
-          <p class="hero-tagline" data-i18n="heroTagline">Speak. Reflect. Evolve.</p>
-          <p class="hero-subtitle" data-i18n="heroSubtitle">Practice your voice. Let AI help you improve.</p>
+          <!-- Prominent Large ECHORA Wordmark Centerpiece -->
+          <h1 class="hero-brand-wordmark">ECHORA</h1>
           
-          <button class="cta-hero-btn" id="cta-hero-start">
-            <span data-i18n="ctaStartSpeaking">Start Speaking</span>
-            <svg class="cta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-              <polyline points="12 5 19 12 12 19"></polyline>
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- How It Works Section -->
-      <div class="how-it-works-section">
-        <span class="section-label" data-i18n="howItWorksTitle">HOW IT WORKS</span>
-        <div class="steps-grid">
-          <!-- Step 1 -->
-          <div class="step-card">
-            <div class="step-icon-wrap">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                <line x1="12" x2="12" y1="19" y2="22"></line>
-              </svg>
-            </div>
-            <h3 class="step-num-title" data-i18n="step1Title">01 — SPEAK</h3>
-            <p class="step-desc" data-i18n="step1Desc">Choose a topic and record your response.</p>
+          <!-- Core Message Triplet: Speak. Reflect. Evolve. -->
+          <div class="hero-tagline-sequence">
+            <span class="tagline-word">Speak.</span>
+            <span class="tagline-word tagline-accent">Reflect.</span>
+            <span class="tagline-word">Evolve.</span>
           </div>
 
-          <!-- Step 2 -->
-          <div class="step-card">
-            <div class="step-icon-wrap">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 3v19"></path>
-                <path d="M5 8v9"></path>
-                <path d="M19 8v9"></path>
-                <path d="M8.5 5v14"></path>
-                <path d="M15.5 5v14"></path>
-              </svg>
-            </div>
-            <h3 class="step-num-title" data-i18n="step2Title">02 — ANALYZE</h3>
-            <p class="step-desc" data-i18n="step2Desc">AI analyzes your speaking performance.</p>
-          </div>
+          <p class="hero-subtitle" data-i18n="heroSubtitle">
+            Your personal speaking studio. Practice spontaneous thought, articulate ideas with clarity, and get coached as you speak.
+          </p>
 
-          <!-- Step 3 -->
-          <div class="step-card">
-            <div class="step-icon-wrap">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12 6 12 12 16 14"></polyline>
+          <div class="hero-actions-row">
+            <a href="#section-practice" class="cta-hero-btn" id="cta-hero-start">
+              <span data-i18n="ctaStartSpeaking">Start Speaking</span>
+              <svg class="cta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
-            </div>
-            <h3 class="step-num-title" data-i18n="step3Title">03 — REFLECT</h3>
-            <p class="step-desc" data-i18n="step3Desc">Understand what you did well and what you can improve.</p>
+            </a>
+            <button type="button" class="cta-hero-secondary" id="cta-hero-coach">
+              <span class="live-pulse-dot"></span>
+              <span data-i18n="navLiveInterview">TalkWith Coach</span>
+            </button>
           </div>
         </div>
       </div>
-    </section>
 
-    <!-- ====================================================================
-         VIEW 2: DASHBOARD
-         ==================================================================== -->
-    <section id="view-dashboard" class="view-section">
-      <div class="dashboard-container">
-        <!-- Header -->
-        <div class="dashboard-header">
-          <span class="user-welcome-sub" data-i18n="welcomeBack">Welcome back</span>
-          <h2 class="user-welcome-name" id="user-display-name-header">Alex Pratama</h2>
+      <!-- 2. MAIN PRACTICE CARD -->
+      <div class="section-container" id="section-practice">
+        <div class="section-meta-header">
+          <span class="section-category-tag">01 — PRACTICE STUDIO</span>
+          <h2 class="section-display-title">Practice Solo Speaking</h2>
+          <p class="section-display-desc">Select a topic, adjust preparation and speaking timers, and speak freely with immediate AI evaluation.</p>
         </div>
 
-        <!-- Today's Challenge Box -->
-        <div class="challenge-card">
+        <div class="challenge-card studio-practice-card">
           <div class="challenge-top-meta">
             <div class="challenge-header-title">
               <span class="challenge-mic-icon">🎤</span>
@@ -140,8 +113,7 @@
             </div>
             <div class="badge-group">
               <span class="category-badge" id="challenge-category-badge">Technology</span>
-              <span class="meta-dot">·</span>
-              <span class="difficulty-badge" id="challenge-difficulty-badge">Easy</span>
+              <span class="difficulty-badge" id="challenge-difficulty-badge">Medium</span>
             </div>
           </div>
 
@@ -185,7 +157,7 @@
             </button>
           </div>
 
-          <!-- Flexible Session Options -->
+          <!-- Flexible Session Options (Preparation & Duration Customization) -->
           <div class="session-controls-grid">
             <div class="control-group">
               <div class="control-group-label" data-i18n="prepTimeLabel">Preparation Time</div>
@@ -198,7 +170,7 @@
               <div class="custom-time-input-row" id="custom-prep-wrap" style="display: none;">
                 <label class="custom-input-label" for="custom-prep-input" data-i18n="customPrepInputLabel">Custom Preparation:</label>
                 <div class="custom-input-field-wrap">
-                  <input type="number" id="custom-prep-input" class="custom-time-input" min="3" max="300" step="1" value="45" placeholder="45">
+                  <input type="number" id="custom-prep-input" class="custom-time-input" min="1" max="300" step="1" value="45" placeholder="45">
                   <span class="custom-unit-tag">sec</span>
                 </div>
               </div>
@@ -215,7 +187,7 @@
               <div class="custom-time-input-row" id="custom-duration-wrap" style="display: none;">
                 <label class="custom-input-label" for="custom-duration-input" data-i18n="customDurationInputLabel">Custom Speaking Duration:</label>
                 <div class="custom-input-field-wrap">
-                  <input type="number" id="custom-duration-input" class="custom-time-input" min="10" max="600" step="1" value="90" placeholder="90">
+                  <input type="number" id="custom-duration-input" class="custom-time-input" min="5" max="600" step="1" value="90" placeholder="90">
                   <span class="custom-unit-tag">sec</span>
                 </div>
               </div>
@@ -232,17 +204,202 @@
             </button>
           </div>
         </div>
+      </div>
 
-        <!-- Recent Sessions Section -->
-        <div class="recent-sessions-header">
-          <span class="section-subhead" data-i18n="recentSessions">RECENT SESSIONS</span>
-          <button class="btn-link-subtle" id="btn-view-all-history" data-i18n="viewAllHistory">View All History →</button>
+      <!-- 3. FEATURE OVERVIEW -->
+      <div class="section-container" id="section-features">
+        <div class="section-meta-header">
+          <span class="section-category-tag">02 — CAPABILITIES</span>
+          <h2 class="section-display-title" data-i18n="featuresTitle">Designed for Natural Growth</h2>
+          <p class="section-display-desc" data-i18n="featuresSubtitle">A complete cycle to sharpen how you think and communicate.</p>
+        </div>
+
+        <div class="features-grid">
+          <!-- Feature 1: Practice -->
+          <div class="feature-card">
+            <div class="feature-icon-box">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" x2="12" y1="19" y2="22"></line>
+              </svg>
+            </div>
+            <h3 class="feature-card-title" data-i18n="feature1Title">Practice</h3>
+            <p class="feature-card-desc" data-i18n="feature1Desc">Practice speaking on everyday topics.</p>
+          </div>
+
+          <!-- Feature 2: AI Feedback -->
+          <div class="feature-card">
+            <div class="feature-icon-box">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20V10"></path>
+                <path d="M18 20V4"></path>
+                <path d="M6 20v-4"></path>
+              </svg>
+            </div>
+            <h3 class="feature-card-title" data-i18n="feature2Title">AI Feedback</h3>
+            <p class="feature-card-desc" data-i18n="feature2Desc">Understand your speaking performance.</p>
+          </div>
+
+          <!-- Feature 3: TalkWith Coach -->
+          <div class="feature-card feature-card-highlight">
+            <div class="feature-icon-box">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+            <h3 class="feature-card-title" data-i18n="feature3Title">TalkWith Coach</h3>
+            <p class="feature-card-desc" data-i18n="feature3Desc">Speak with an AI coach through guided conversation.</p>
+          </div>
+
+          <!-- Feature 4: Speaking History -->
+          <div class="feature-card">
+            <div class="feature-icon-box">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <h3 class="feature-card-title" data-i18n="feature4Title">Speaking History</h3>
+            <p class="feature-card-desc" data-i18n="feature4Desc">Replay and reflect on previous recordings.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. TALKWITH COACH SHOWCASE -->
+      <div class="section-container" id="section-showcase">
+        <div class="section-meta-header">
+          <div class="showcase-badge-pill">
+            <span class="live-pulse-dot"></span>
+            <span data-i18n="showcaseBadge">CONVERSATIONAL AI COACH</span>
+          </div>
+          <h2 class="section-display-title" data-i18n="showcaseTitle">TalkWith Coach</h2>
+          <p class="section-display-desc" data-i18n="showcaseSubtitle">Speak naturally. Get coached as you go.</p>
+        </div>
+
+        <!-- Workflow Step Indicator -->
+        <div class="showcase-workflow-steps">
+          <span class="workflow-pill active" data-i18n="showcaseStep1">01 Speak</span>
+          <span class="workflow-arrow">→</span>
+          <span class="workflow-pill active" data-i18n="showcaseStep2">02 Transcript</span>
+          <span class="workflow-arrow">→</span>
+          <span class="workflow-pill active" data-i18n="showcaseStep3">03 Confirm</span>
+          <span class="workflow-arrow">→</span>
+          <span class="workflow-pill active" data-i18n="showcaseStep4">04 AI Responds</span>
+          <span class="workflow-arrow">→</span>
+          <span class="workflow-pill" data-i18n="showcaseStep5">05 Speak Again</span>
+        </div>
+
+        <!-- Visual Centerpiece Display Mockup -->
+        <div class="talkwith-showcase-card">
+          <!-- Live User Speaking Audio Wave Simulation -->
+          <div class="showcase-speaking-bar">
+            <div class="speaking-meta">
+              <span class="live-pulse-dot"></span>
+              <span class="speaking-label" data-i18n="showcaseListening">You're speaking...</span>
+            </div>
+            <div class="mini-wave-animation">
+              <span class="wave-bar bar-1"></span>
+              <span class="wave-bar bar-2"></span>
+              <span class="wave-bar bar-3"></span>
+              <span class="wave-bar bar-4"></span>
+              <span class="wave-bar bar-5"></span>
+              <span class="wave-bar bar-6"></span>
+              <span class="wave-bar bar-7"></span>
+              <span class="wave-bar bar-8"></span>
+            </div>
+          </div>
+
+          <!-- Transcript Confirmation Card Step -->
+          <div class="showcase-confirm-panel">
+            <div class="showcase-confirm-header">
+              <span class="confirm-chat-icon">💬</span>
+              <span class="confirm-modal-heading" data-i18n="confirmModalTitle">Did I hear you right?</span>
+            </div>
+            <p class="showcase-quote-text" id="showcase-sample-quote" data-i18n="showcaseSampleQuote">
+              "I think AI can help students learn faster and think more critically."
+            </p>
+            <div class="showcase-confirm-actions">
+              <button type="button" class="showcase-btn btn-confirm" id="btn-showcase-demo-confirm">
+                <span>✓ That's right</span>
+              </button>
+              <button type="button" class="showcase-btn btn-retry" id="btn-showcase-demo-retry">
+                <span>↻ Speak again</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- AI Coach Conversational Response Step -->
+          <div class="showcase-coach-panel">
+            <div class="coach-speaker-header">
+              <div class="coach-avatar-circle">🌿</div>
+              <div class="coach-info-meta">
+                <span class="coach-tag-name">ECHORA</span>
+                <span class="coach-tag-role">Conversational Speaking Coach</span>
+              </div>
+            </div>
+            <p class="coach-speech-bubble" id="showcase-sample-reply" data-i18n="showcaseCoachReply">
+              "Interesting. What makes you think that?"
+            </p>
+          </div>
+
+          <!-- Bottom Action Row -->
+          <div class="showcase-cta-bar">
+            <button type="button" class="btn-primary-action btn-showcase-launch" id="btn-showcase-launch-coach">
+              <span class="btn-mic-icon">🎙️</span>
+              <span data-i18n="startTalkWithCoachBtn">Start TalkWith Coach</span>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. SPEAKING HISTORY -->
+      <div class="section-container" id="section-history">
+        <div class="section-meta-header">
+          <span class="section-category-tag">04 — REFLECTION</span>
+          <h2 class="section-display-title" data-i18n="historyTitle">Speaking History</h2>
+          <p class="section-display-desc" data-i18n="historySubtitle">Review previous challenges, replay your recordings, and track past AI coaching feedback.</p>
         </div>
 
         <div class="recent-sessions-list" id="dashboard-recent-list">
           <!-- Populated dynamically via JS -->
         </div>
+
+        <div class="history-view-more-row" style="margin-top: 24px; text-align: center;">
+          <button class="btn-link-subtle" id="btn-view-all-history" data-i18n="viewAllHistory">View All History →</button>
+        </div>
       </div>
+
+      <!-- 6. FOOTER -->
+      <footer class="app-footer">
+        <div class="footer-container">
+          <div class="footer-brand-col">
+            <div class="footer-brand">
+              <div class="brand-symbol">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" x2="12" y1="19" y2="22"></line>
+                </svg>
+              </div>
+              <span class="footer-brand-title">ECHORA</span>
+            </div>
+            <p class="footer-tagline">Speak. Reflect. Evolve.</p>
+            <p class="footer-copy">Your personal AI-powered speaking studio.</p>
+          </div>
+
+          <div class="footer-links-col">
+            <a href="#section-hero" class="footer-link">Studio Home</a>
+            <a href="#section-practice" class="footer-link">Solo Practice</a>
+            <a href="#section-showcase" class="footer-link">TalkWith Coach</a>
+            <a href="#section-history" class="footer-link">Speaking History</a>
+          </div>
+        </div>
+      </footer>
     </section>
 
     <!-- ====================================================================
@@ -529,6 +686,385 @@
       </div>
     </section>
 
+    <!-- ====================================================================
+         VIEW 9: AI LIVE INTERVIEW SETUP
+         ==================================================================== -->
+    <section id="view-live-setup" class="view-section">
+      <div class="live-setup-container">
+        <!-- Setup Header -->
+        <div class="live-setup-header">
+          <div class="live-tag-badge">
+            <span class="live-pulse-dot"></span>
+            <span data-i18n="liveBadge">COACH</span>
+            <span class="meta-dot">·</span>
+            <span>TRUE REAL-TIME AUDIO</span>
+          </div>
+          <h2 class="live-setup-title" data-i18n="liveSetupTitle">TalkWith Coach</h2>
+          <p class="live-setup-desc" data-i18n="liveSetupSubtitle">
+            AI speaking coach untuk siswa dan mahasiswa. Latih opini, jelaskan ide, dan asah kemampuan berbicara spontan.
+          </p>
+        </div>
+
+        <!-- Setup Card Grid -->
+        <div class="live-setup-card">
+          <!-- 1. Language Selection -->
+          <div class="setup-group">
+            <div class="setup-group-label" data-i18n="liveLangTitle">Coach Language</div>
+            <div class="live-lang-selector" id="live-lang-selector">
+              <button type="button" class="live-lang-card selected" data-lang="id">
+                <span class="flag-icon">🇮🇩</span>
+                <span class="lang-name" data-i18n="liveLangId">Bahasa Indonesia</span>
+                <span class="lang-sub">Natural & Santai</span>
+              </button>
+              <button type="button" class="live-lang-card" data-lang="en">
+                <span class="flag-icon">🇬🇧</span>
+                <span class="lang-name" data-i18n="liveLangEn">English</span>
+                <span class="lang-sub">Fluent & Conversational</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. AI Voice Selection with Verified Voices & Real Voice Preview -->
+          <div class="setup-group">
+            <div class="setup-group-header">
+              <div class="setup-group-label" data-i18n="liveVoiceTitle">AI Coach Voice</div>
+              <span class="setup-hint">Google Gemini Live Verified Voices</span>
+            </div>
+            <div class="live-voice-grid" id="live-voice-grid">
+              <!-- Puck -->
+              <div class="voice-card selected" data-voice="Puck">
+                <div class="voice-meta">
+                  <div class="voice-avatar-icon">🎙️</div>
+                  <div class="voice-info">
+                    <div class="voice-name">Puck</div>
+                    <div class="voice-tone" data-tone-en="Upbeat, natural, engaging" data-tone-id="Semangat, alami, santai">Semangat, alami, santai</div>
+                  </div>
+                </div>
+                <button type="button" class="btn-voice-preview" data-voice="Puck" title="Preview Voice">
+                  <span class="play-icon">▶</span>
+                  <span class="preview-label" data-i18n="livePreviewVoice">Preview Voice</span>
+                </button>
+              </div>
+
+              <!-- Aoede -->
+              <div class="voice-card" data-voice="Aoede">
+                <div class="voice-meta">
+                  <div class="voice-avatar-icon">✨</div>
+                  <div class="voice-info">
+                    <div class="voice-name">Aoede</div>
+                    <div class="voice-tone" data-tone-en="Warm, engaging, articulate" data-tone-id="Hangat, suportif, jernih">Hangat, suportif, jernih</div>
+                  </div>
+                </div>
+                <button type="button" class="btn-voice-preview" data-voice="Aoede" title="Preview Voice">
+                  <span class="play-icon">▶</span>
+                  <span class="preview-label" data-i18n="livePreviewVoice">Preview Voice</span>
+                </button>
+              </div>
+
+              <!-- Charon -->
+              <div class="voice-card" data-voice="Charon">
+                <div class="voice-meta">
+                  <div class="voice-avatar-icon">🏛️</div>
+                  <div class="voice-info">
+                    <div class="voice-name">Charon</div>
+                    <div class="voice-tone" data-tone-en="Deep, calm, professional" data-tone-id="Tenang, berwibawa, profesional">Tenang, berwibawa, profesional</div>
+                  </div>
+                </div>
+                <button type="button" class="btn-voice-preview" data-voice="Charon" title="Preview Voice">
+                  <span class="play-icon">▶</span>
+                  <span class="preview-label" data-i18n="livePreviewVoice">Preview Voice</span>
+                </button>
+              </div>
+
+              <!-- Kore -->
+              <div class="voice-card" data-voice="Kore">
+                <div class="voice-meta">
+                  <div class="voice-avatar-icon">🌿</div>
+                  <div class="voice-info">
+                    <div class="voice-name">Kore</div>
+                    <div class="voice-tone" data-tone-en="Soothing, calm, observant" data-tone-id="Lembut, artikulatif, perhatian">Lembut, artikulatif, perhatian</div>
+                  </div>
+                </div>
+                <button type="button" class="btn-voice-preview" data-voice="Kore" title="Preview Voice">
+                  <span class="play-icon">▶</span>
+                  <span class="preview-label" data-i18n="livePreviewVoice">Preview Voice</span>
+                </button>
+              </div>
+
+              <!-- Fenrir -->
+              <div class="voice-card" data-voice="Fenrir">
+                <div class="voice-meta">
+                  <div class="voice-avatar-icon">⚡</div>
+                  <div class="voice-info">
+                    <div class="voice-name">Fenrir</div>
+                    <div class="voice-tone" data-tone-en="Crisp, energetic, direct" data-tone-id="Tegas, bertenaga, lugas">Tegas, bertenaga, lugas</div>
+                  </div>
+                </div>
+                <button type="button" class="btn-voice-preview" data-voice="Fenrir" title="Preview Voice">
+                  <span class="play-icon">▶</span>
+                  <span class="preview-label" data-i18n="livePreviewVoice">Preview Voice</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Session Topic / Type (4 Primary Types for Students) -->
+          <div class="setup-group">
+            <div class="setup-group-label" data-i18n="liveTypeTitle">Topik Sesi Latihan</div>
+            <div class="pill-selector pill-selector-wrap" id="live-type-selector">
+              <button type="button" class="pill-option selected" data-val="School">School</button>
+              <button type="button" class="pill-option" data-val="Presentation">Presentation</button>
+              <button type="button" class="pill-option" data-val="Opinion">Opinion</button>
+              <button type="button" class="pill-option" data-val="Daily Life">Daily Life</button>
+            </div>
+          </div>
+
+          <!-- 5. Duration Selection -->
+          <div class="setup-group">
+            <div class="setup-group-label" data-i18n="liveDurationTitle">Durasi Latihan</div>
+            <div class="pill-selector" id="live-duration-selector">
+              <button type="button" class="pill-option" data-val="3">3 menit</button>
+              <button type="button" class="pill-option selected" data-val="5">5 menit</button>
+              <button type="button" class="pill-option" data-val="10">10 menit</button>
+              <button type="button" class="pill-option" data-val="custom" id="btn-live-duration-custom" data-i18n="customLabel">Custom</button>
+            </div>
+            <div class="custom-time-input-row" id="live-custom-duration-wrap" style="display: none; margin-top: 12px;">
+              <label class="custom-input-label" for="live-custom-duration-input">Durasi (menit):</label>
+              <div class="custom-input-field-wrap">
+                <input type="number" id="live-custom-duration-input" class="custom-time-input" min="1" max="30" step="1" value="5">
+                <span class="custom-unit-tag">min</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Button: START COACH SESSION -->
+          <div class="setup-action-row">
+            <button type="button" class="btn-primary-action btn-start-live" id="btn-start-live-session">
+              <span class="btn-mic-icon">🎙️</span>
+              <span data-i18n="startLiveInterviewBtn">MULAI LATIHAN BERSAMA COACH</span>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         VIEW 10: AI LIVE INTERVIEW ROOM (REAL-TIME VOICE SESSION)
+         ==================================================================== -->
+    <section id="view-live-room" class="view-section">
+      <div class="live-room-container">
+        <!-- Room Header Bar -->
+        <div class="live-room-header">
+          <div class="live-room-brand">
+            <span class="brand-title">ECHORA</span>
+            <span class="live-room-badge">
+              <span class="live-pulse-dot"></span>
+              <span>TalkWith Coach</span>
+            </span>
+          </div>
+
+          <!-- Real-Time Countdown Timer -->
+          <div class="live-timer-wrap">
+            <span class="timer-clock-icon">⏱️</span>
+            <span class="live-timer-text" id="live-room-timer">05:00</span>
+          </div>
+
+          <!-- Exit Button -->
+          <button type="button" class="btn-live-exit" id="btn-live-room-exit" title="Exit Interview">
+            <span>Exit</span>
+            <span class="exit-symbol">✕</span>
+          </button>
+        </div>
+
+        <!-- Center AI Visualizer & Avatar Stage -->
+        <div class="live-center-stage">
+          <div class="live-ai-orb-container">
+            <!-- Concentric Glow Rings reacting to voice states -->
+            <div class="orb-outer-ring" id="orb-outer-ring"></div>
+            <div class="orb-middle-ring" id="orb-middle-ring"></div>
+            <div class="live-ai-orb" id="live-ai-orb">
+              <div class="orb-core">
+                <div class="orb-core-symbol">🎙️</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reactive State Label -->
+          <div class="live-status-pill" id="live-status-pill">
+            <span class="status-indicator-dot" id="status-indicator-dot"></span>
+            <span class="status-indicator-text" id="live-status-text" data-i18n="connectingAi">Connecting to AI...</span>
+          </div>
+
+          <!-- Subtle Dynamic Audio Waveform Canvas -->
+          <div class="live-waveform-wrap">
+            <canvas id="live-waveform-canvas" class="live-waveform-canvas"></canvas>
+          </div>
+
+          <!-- Live Subtitle Bubble (Attentive Real-Time Text preview) -->
+          <div class="live-speech-bubble" id="live-speech-bubble" style="opacity: 0;">
+            <span class="bubble-speaker-tag" id="bubble-speaker-tag">AI</span>
+            <span class="bubble-text" id="bubble-text">Listening...</span>
+          </div>
+
+          <!-- Center Transcript Confirmation Card (Appears when user stops speaking) -->
+          <div class="transcript-confirm-card" id="transcript-confirm-card" style="display: none;">
+            <div class="confirm-card-header">
+              <span class="confirm-dot">💬</span>
+              <span class="confirm-card-title" id="confirm-card-title" data-i18n="confirmModalTitle">Did I hear you right?</span>
+            </div>
+            <div class="confirm-transcript-bubble" id="confirm-transcript-text">
+              <!-- User spoken transcript or unclear prompt -->
+            </div>
+            <div class="confirm-actions-row">
+              <button type="button" class="btn-confirm-right" id="btn-confirm-right" data-i18n="confirmBtnRight">
+                ✓ That's right
+              </button>
+              <button type="button" class="btn-confirm-retry" id="btn-confirm-retry" data-i18n="confirmBtnSpeakAgain">
+                ↻ Speak again
+              </button>
+            </div>
+          </div>
+
+          <!-- Error / Connection alert banner (if any) -->
+          <div class="live-room-alert" id="live-room-alert" style="display: none;">
+            <span class="alert-icon">⚠️</span>
+            <span class="alert-text" id="live-alert-text">Connection lost.</span>
+            <button type="button" class="btn-reconnect" id="btn-live-reconnect" data-i18n="reconnectBtn">Reconnect</button>
+          </div>
+        </div>
+
+        <!-- Bottom Controls Bar -->
+        <div class="live-controls-bar">
+          <!-- Done Speaking Button (Manual trigger when speaking) -->
+          <button type="button" class="btn-live-control btn-done-speaking" id="btn-done-speaking" style="display: none;">
+            <span class="done-check-icon">✓</span>
+            <span id="btn-done-speaking-label" data-i18n="doneSpeakingBtn">Done Speaking</span>
+          </button>
+
+          <!-- Toggle Transcript Drawer -->
+          <button type="button" class="btn-live-control" id="btn-toggle-live-transcript">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            <span id="btn-transcript-label" data-i18n="showTranscriptBtn">Show Transcript</span>
+          </button>
+
+          <!-- Toggle Microphone (Mute / Unmute) -->
+          <button type="button" class="btn-live-control btn-mic-toggle" id="btn-toggle-live-mic">
+            <svg class="mic-on-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" x2="12" y1="19" y2="22"></line>
+            </svg>
+            <span id="btn-mic-label" data-i18n="muteMicBtn">Mute</span>
+          </button>
+
+          <!-- End Interview Button -->
+          <button type="button" class="btn-live-control btn-end-interview" id="btn-end-live-interview">
+            <span class="stop-box-icon">■</span>
+            <span data-i18n="endInterviewBtn">Selesaikan Sesi</span>
+          </button>
+        </div>
+
+        <!-- Live Transcript Expandable Panel -->
+        <div class="live-transcript-panel" id="live-transcript-panel" style="display: none;">
+          <div class="transcript-panel-header">
+            <span class="transcript-title">LIVE TRANSCRIPT</span>
+            <button type="button" class="btn-close-transcript" id="btn-close-transcript-panel">&times;</button>
+          </div>
+          <div class="transcript-messages-feed" id="live-transcript-feed">
+            <!-- Dynamically populated dialogue lines -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         VIEW 11: TALKWITH COACH COMPLETE & FEEDBACK
+         ==================================================================== -->
+    <section id="view-live-result" class="view-section">
+      <div class="live-result-container">
+        <!-- Header -->
+        <div class="result-top-bar">
+          <div class="result-status-tag">
+            <span class="complete-dot">✓</span>
+            <span data-i18n="liveResultTitle">Sesi Selesai</span>
+          </div>
+          <h2 class="result-title" id="live-result-topic-title">TalkWith Coach</h2>
+          
+          <div class="badge-group" style="margin-top: 8px;">
+            <span class="category-badge" id="live-result-type-badge">Opinion</span>
+            <span class="meta-dot">·</span>
+            <span class="category-badge" id="live-result-lang-badge">Bahasa Indonesia</span>
+            <span class="meta-dot">·</span>
+            <span class="category-badge" id="live-result-duration-badge">5m</span>
+          </div>
+        <!-- Talked Duration Banner -->
+        <div class="talkwith-duration-banner" style="margin-top: 24px;">
+          <div class="duration-highlight-box">
+            <span class="clock-large-icon">⏱️</span>
+            <div class="duration-meta">
+              <span class="duration-label" data-i18n="talkedDurationLabel">WAKTU BERBICARA</span>
+              <span class="duration-val" id="live-result-talked-time">You talked for 02:45</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coach Feedback (2 Cards: Coach Noticed & One Change) -->
+        <div class="talkwith-feedback-grid" style="margin-top: 20px;">
+          <!-- 1. Coach Noticed (2 positive points) -->
+          <div class="feedback-card coach-noticed-card">
+            <div class="feedback-section-title">
+              <span class="section-badge-icon">✨</span>
+              <span data-i18n="coachNoticedTitle">Coach noticed:</span>
+            </div>
+            <ul class="feedback-bullets" id="live-result-coach-noticed">
+              <!-- Rendered dynamically -->
+            </ul>
+          </div>
+
+          <!-- 2. One Change (1 single high-impact recommendation) -->
+          <div class="feedback-card one-change-card">
+            <div class="feedback-section-title">
+              <span class="section-badge-icon">🎯</span>
+              <span data-i18n="oneChangeTitle">🎯 One Change</span>
+            </div>
+            <p class="one-change-text" id="live-result-one-change">
+              <!-- Rendered dynamically -->
+            </p>
+          </div>
+        </div>
+
+        <!-- Full Interview Dialogue Transcript Section -->
+        <div class="live-dialogue-transcript-card" style="margin-top: 24px;">
+          <div class="dialogue-header-row">
+            <span class="section-label" data-i18n="transcriptDialogueTitle">TRANSKRIP PERCAKAPAN</span>
+            <span class="dialogue-count-tag" id="live-result-turn-count">0 giliran</span>
+          </div>
+          <div class="dialogue-scroll-box" id="live-result-dialogue-list">
+            <!-- Populated dynamically via JS -->
+          </div>
+        </div>
+
+        <!-- Action Row -->
+        <div class="result-actions-row" style="margin-top: 32px;">
+          <button type="button" class="btn-primary-action" id="btn-live-practice-again" data-i18n="tryAgainBtn">
+            Try Again
+          </button>
+          <button type="button" class="btn-secondary-action" id="btn-live-view-history" data-i18n="viewAllHistory">
+            View in History
+          </button>
+          <button type="button" class="btn-link-subtle" id="btn-live-back-dashboard" data-i18n="backToDashboard">
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- ======================================================================
@@ -671,6 +1207,7 @@
   <script src="js/canvas-waveform.js"></script>
   <script src="js/audio-player.js"></script>
   <script src="js/audio-recorder.js"></script>
+  <script src="js/live-interview.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

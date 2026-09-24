@@ -27,13 +27,28 @@ document.addEventListener('DOMContentLoaded', () => {
     modalAudioPlayer: null,
     ambientWave: null,
     liveVisualizer: null,
-    recorder: null
+    recorder: null,
+    
+    // Live Interview State
+    liveConfig: {
+      language: 'id',
+      voice: 'Puck',
+      interviewType: 'School',
+      durationMinutes: 5
+    },
+    liveSession: null,
+    liveTimerInterval: null,
+    liveRemainingSeconds: 300,
+    liveElapsedSeconds: 0,
+    liveWaveVisualizer: null,
+    activePreviewAudio: null
   };
 
   // DOM Element References
   const dom = {
     // Navigation
     navBrand: document.getElementById('nav-brand-logo'),
+    navLiveInterview: document.getElementById('nav-btn-live-interview'),
     navDashboard: document.getElementById('nav-btn-dashboard'),
     navHistory: document.getElementById('nav-btn-history'),
     navProfile: document.getElementById('nav-btn-profile'),
@@ -44,13 +59,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Views
     views: {
       landing: document.getElementById('view-landing'),
-      dashboard: document.getElementById('view-dashboard'),
+      dashboard: document.getElementById('view-landing'),
       prep: document.getElementById('view-prep'),
       recording: document.getElementById('view-recording'),
       postRecord: document.getElementById('view-post-record'),
       analyzing: document.getElementById('view-analyzing'),
       result: document.getElementById('view-result'),
-      history: document.getElementById('view-history')
+      history: document.getElementById('view-history'),
+      liveSetup: document.getElementById('view-live-setup'),
+      liveRoom: document.getElementById('view-live-room'),
+      liveResult: document.getElementById('view-live-result')
     },
 
     // Landing
@@ -156,7 +174,56 @@ document.addEventListener('DOMContentLoaded', () => {
     profileNameInput: document.getElementById('profile-name-input'),
 
     // Toast
-    toast: document.getElementById('toast-msg')
+    toast: document.getElementById('toast-msg'),
+
+    // Live Interview Setup
+    liveCustomTopicWrap: document.getElementById('live-custom-topic-wrap'),
+    liveCustomTopicInput: document.getElementById('live-custom-topic-input'),
+    liveCustomDurationWrap: document.getElementById('live-custom-duration-wrap'),
+    liveCustomDurationInput: document.getElementById('live-custom-duration-input'),
+    btnStartLiveSession: document.getElementById('btn-start-live-session'),
+
+    // Live Room & Confirmation Modal
+    liveRoomTimer: document.getElementById('live-room-timer'),
+    btnLiveRoomExit: document.getElementById('btn-live-room-exit'),
+    liveAiOrbContainer: document.getElementById('live-ai-orb')?.parentElement,
+    liveStatusText: document.getElementById('live-status-text'),
+    liveWaveformCanvas: document.getElementById('live-waveform-canvas'),
+    liveSpeechBubble: document.getElementById('live-speech-bubble'),
+    bubbleSpeakerTag: document.getElementById('bubble-speaker-tag'),
+    bubbleText: document.getElementById('bubble-text'),
+    transcriptConfirmCard: document.getElementById('transcript-confirm-card'),
+    confirmCardTitle: document.getElementById('confirm-card-title'),
+    confirmTranscriptText: document.getElementById('confirm-transcript-text'),
+    btnConfirmRight: document.getElementById('btn-confirm-right'),
+    btnConfirmRetry: document.getElementById('btn-confirm-retry'),
+    btnDoneSpeaking: document.getElementById('btn-done-speaking'),
+    liveRoomAlert: document.getElementById('live-room-alert'),
+    liveAlertText: document.getElementById('live-alert-text'),
+    btnLiveReconnect: document.getElementById('btn-live-reconnect'),
+    btnToggleLiveTranscript: document.getElementById('btn-toggle-live-transcript'),
+    btnTranscriptLabel: document.getElementById('btn-transcript-label'),
+    btnToggleLiveMic: document.getElementById('btn-toggle-live-mic'),
+    btnMicLabel: document.getElementById('btn-mic-label'),
+    btnEndLiveInterview: document.getElementById('btn-end-live-interview'),
+    liveTranscriptPanel: document.getElementById('live-transcript-panel'),
+    btnCloseTranscriptPanel: document.getElementById('btn-close-transcript-panel'),
+    liveTranscriptFeed: document.getElementById('live-transcript-feed'),
+
+    // TalkWith Coach Result
+    liveResultTopicTitle: document.getElementById('live-result-topic-title'),
+    liveResultTypeBadge: document.getElementById('live-result-type-badge'),
+    liveResultDiffBadge: document.getElementById('live-result-diff-badge'),
+    liveResultLangBadge: document.getElementById('live-result-lang-badge'),
+    liveResultDurationBadge: document.getElementById('live-result-duration-badge'),
+    liveResultTalkedTime: document.getElementById('live-result-talked-time'),
+    liveResultCoachNoticed: document.getElementById('live-result-coach-noticed'),
+    liveResultOneChange: document.getElementById('live-result-one-change'),
+    liveResultTurnCount: document.getElementById('live-result-turn-count'),
+    liveResultDialogueList: document.getElementById('live-result-dialogue-list'),
+    btnLivePracticeAgain: document.getElementById('btn-live-practice-again'),
+    btnLiveViewHistory: document.getElementById('btn-live-view-history'),
+    btnLiveBackDashboard: document.getElementById('btn-live-back-dashboard')
   };
 
   // --------------------------------------------------------------------------
@@ -179,7 +246,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
       if (translations[lang][key]) {
-        el.textContent = translations[lang][key];
+        if (key === 'heroTitle') {
+          el.innerHTML = translations[lang][key];
+        } else {
+          el.textContent = translations[lang][key];
+        }
       }
     });
 
@@ -206,31 +277,50 @@ document.addEventListener('DOMContentLoaded', () => {
     // Stop any playing audio before switching views
     document.querySelectorAll('audio').forEach(a => a.pause());
 
+    const targetViewEl = dom.views[viewName];
     Object.keys(dom.views).forEach(key => {
-      dom.views[key].classList.remove('active');
+      const el = dom.views[key];
+      if (el && el !== targetViewEl) {
+        el.classList.remove('active');
+      }
     });
 
-    dom.views[viewName].classList.add('active');
+    targetViewEl.classList.add('active');
     state.currentView = viewName;
 
     // Update nav active states
-    [dom.navDashboard, dom.navHistory].forEach(btn => btn.classList.remove('active'));
-    if (viewName === 'dashboard') dom.navDashboard.classList.add('active');
-    if (viewName === 'history') dom.navHistory.classList.add('active');
+    [dom.navDashboard, dom.navHistory, dom.navLiveInterview].forEach(btn => btn?.classList.remove('active'));
+    if (viewName === 'dashboard' || viewName === 'landing') dom.navDashboard?.classList.add('active');
+    if (viewName === 'history') dom.navHistory?.classList.add('active');
+    if (viewName === 'liveSetup' || viewName === 'liveRoom' || viewName === 'liveResult') {
+      dom.navLiveInterview?.classList.add('active');
+    }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     // View specific lifecycle
-    if (viewName === 'landing') {
+    if (viewName === 'landing' || viewName === 'dashboard') {
       if (state.ambientWave) state.ambientWave.start();
+      fetchSessions();
+      fetchProfile();
+      if (!state.currentTopic) rollRandomTopic();
     } else {
       if (state.ambientWave) state.ambientWave.stop();
     }
 
-    if (viewName === 'dashboard') {
-      fetchSessions();
-      fetchProfile();
-      if (!state.currentTopic) rollRandomTopic();
+    if (viewName === 'liveRoom') {
+      if (!state.liveWaveVisualizer) {
+        state.liveWaveVisualizer = new LiveWaveformVisualizer('live-waveform-canvas');
+      }
+      state.liveWaveVisualizer.start();
+    } else {
+      if (state.liveWaveVisualizer) {
+        state.liveWaveVisualizer.stop();
+      }
+      if (state.liveTimerInterval) {
+        clearInterval(state.liveTimerInterval);
+        state.liveTimerInterval = null;
+      }
     }
 
     if (viewName === 'history') {
@@ -374,17 +464,23 @@ document.addEventListener('DOMContentLoaded', () => {
     card.className = 'session-card';
 
     const isId = state.currentLang === 'id';
+    const isLive = session.type === 'live-interview';
     const displayTopic = (isId && session.topicId_id) ? session.topicId_id : session.topic;
+
+    const typeBadge = isLive
+      ? `<span class="category-badge" style="background:rgba(36, 87, 77, 0.45); color:var(--accent-mint); font-size:0.75rem; padding:2px 8px;">🎙️ TalkWith Coach</span>`
+      : `<span class="category-badge" style="font-size:0.75rem; padding:2px 8px;">${session.category}</span>`;
 
     card.innerHTML = `
       <div class="session-card-main">
         <div class="session-card-info">
           <h4 class="session-topic-title">${escapeHtml(displayTopic)}</h4>
           <div class="session-card-meta">
-            <span class="category-badge" style="font-size:0.75rem; padding:2px 8px;">${session.category}</span>
+            ${typeBadge}
             <span>${formatDate(session.date)}</span>
             <span>•</span>
             <span>${formatTimeShort(session.duration)}</span>
+            ${session.voice ? `<span>• Voice: ${session.voice}</span>` : ''}
           </div>
         </div>
         <div class="session-score-pill">
@@ -394,7 +490,9 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
 
       <div class="session-player-wrap">
-        <div class="card-audio-container" style="flex:1;"></div>
+        <div class="card-audio-container" style="flex:1;">
+          ${isLive && !session.audioUrl ? `<span style="font-size:0.8rem; color:var(--text-muted); display:inline-flex; align-items:center; gap:6px;">💬 TalkWith Coach (${session.transcript?.length || 0} turns)</span>` : ''}
+        </div>
         <div class="session-action-btns">
           <button class="btn-card-action btn-view-analysis">${t('viewAnalysisBtn')}</button>
           <button class="btn-card-action btn-card-delete" title="${t('deleteSessionBtn')}">
@@ -407,9 +505,11 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
-    // Instantiate custom audio player inside card
-    const audioContainer = card.querySelector('.card-audio-container');
-    const player = new EchoraAudioPlayer(audioContainer, session.audioUrl);
+    // Instantiate custom audio player inside card if audioUrl exists
+    if (session.audioUrl) {
+      const audioContainer = card.querySelector('.card-audio-container');
+      const player = new EchoraAudioPlayer(audioContainer, session.audioUrl);
+    }
 
     // Event listeners
     card.querySelector('.btn-view-analysis').addEventListener('click', () => {
@@ -731,9 +831,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // --------------------------------------------------------------------------
   function openAnalysisModal(session) {
     const isId = state.currentLang === 'id';
+    const isLive = session.type === 'live-interview';
     const displayTopic = (isId && session.topicId_id) ? session.topicId_id : session.topic;
 
-    dom.modalCategoryBadge.textContent = session.category;
+    dom.modalCategoryBadge.textContent = isLive ? 'TalkWith Coach' : session.category;
     dom.modalTopicTitle.textContent = `“${displayTopic}”`;
 
     dom.modalOverallScore.textContent = session.overallScore;
@@ -742,20 +843,20 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.modalRingProgress.style.strokeDashoffset = offset;
 
     const s = session.scores || {};
-    dom.modalBreakdownContentVal.textContent = s.content || 80;
-    dom.modalBreakdownContentBar.style.width = `${s.content || 80}%`;
+    dom.modalBreakdownContentVal.textContent = s.content || s.communication || 80;
+    dom.modalBreakdownContentBar.style.width = `${s.content || s.communication || 80}%`;
 
-    dom.modalBreakdownFluencyVal.textContent = s.fluency || 80;
-    dom.modalBreakdownFluencyBar.style.width = `${s.fluency || 80}%`;
+    dom.modalBreakdownFluencyVal.textContent = s.fluency || s.speakingFlow || 80;
+    dom.modalBreakdownFluencyBar.style.width = `${s.fluency || s.speakingFlow || 80}%`;
 
-    dom.modalBreakdownArticulationVal.textContent = s.articulation || 80;
-    dom.modalBreakdownArticulationBar.style.width = `${s.articulation || 80}%`;
+    dom.modalBreakdownArticulationVal.textContent = s.articulation || s.clarity || 80;
+    dom.modalBreakdownArticulationBar.style.width = `${s.articulation || s.clarity || 80}%`;
 
-    dom.modalBreakdownPaceVal.textContent = s.pace || 80;
-    dom.modalBreakdownPaceBar.style.width = `${s.pace || 80}%`;
+    dom.modalBreakdownPaceVal.textContent = s.pace || s.relevance || 80;
+    dom.modalBreakdownPaceBar.style.width = `${s.pace || s.relevance || 80}%`;
 
-    dom.modalBreakdownExpressionVal.textContent = s.expression || 80;
-    dom.modalBreakdownExpressionBar.style.width = `${s.expression || 80}%`;
+    dom.modalBreakdownExpressionVal.textContent = s.expression || s.confidence || 80;
+    dom.modalBreakdownExpressionBar.style.width = `${s.expression || s.confidence || 80}%`;
 
     dom.modalDidWellList.innerHTML = '';
     const modalDidWell = session.feedback?.whatYouDidWell || session.feedback?.well || [];
@@ -777,11 +878,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dom.modalNextStepText.textContent = `“${session.feedback?.nextStep || ''}”`;
 
-    // Modal Audio Player
-    if (!state.modalAudioPlayer) {
-      state.modalAudioPlayer = new EchoraAudioPlayer(dom.modalAudioContainer, session.audioUrl);
+    // Modal Audio Player or Dialogue Transcript for Live Sessions
+    if (isLive && session.transcript && session.transcript.length > 0) {
+      const transcriptHtml = session.transcript.map(item => `
+        <div style="margin-bottom:8px; display:flex; gap:8px;">
+          <strong style="color:${item.sender === 'user' ? 'var(--accent-peach)' : 'var(--accent-mint)'}; font-size:0.75rem; text-transform:uppercase;">
+            ${item.sender === 'user' ? 'You' : 'Coach'}:
+          </strong>
+          <span style="font-size:0.85rem; color:var(--text-secondary);">${escapeHtml(item.text)}</span>
+        </div>
+      `).join('');
+      dom.modalAudioContainer.innerHTML = `
+        <div style="max-height:180px; overflow-y:auto; padding:12px; background:rgba(11,33,30,0.6); border-radius:10px; border:1px solid var(--border-subtle);">
+          <div style="font-size:0.72rem; font-weight:700; color:var(--primary-sage); margin-bottom:8px; text-transform:uppercase;">Dialogue Transcript (${session.transcript.length} turns)</div>
+          ${transcriptHtml}
+        </div>
+      `;
+    } else if (session.audioUrl) {
+      if (!state.modalAudioPlayer) {
+        state.modalAudioPlayer = new EchoraAudioPlayer(dom.modalAudioContainer, session.audioUrl);
+      } else {
+        state.modalAudioPlayer.load(session.audioUrl);
+      }
     } else {
-      state.modalAudioPlayer.load(session.audioUrl);
+      dom.modalAudioContainer.innerHTML = '';
     }
 
     openModal(dom.modalAnalysis);
@@ -807,16 +927,675 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --------------------------------------------------------------------------
+  // AI Live Interview — Real-Time Visualizer & Audio Logic
+  // --------------------------------------------------------------------------
+  class LiveWaveformVisualizer {
+    constructor(canvasId) {
+      this.canvas = document.getElementById(canvasId);
+      if (!this.canvas) return;
+      this.ctx = this.canvas.getContext('2d');
+      this.phase = 0;
+      this.energy = 0.05;
+      this.targetEnergy = 0.05;
+      this.isRunning = false;
+      this.animId = null;
+      this.resize();
+      window.addEventListener('resize', () => this.resize());
+    }
+
+    resize() {
+      if (!this.canvas) return;
+      const rect = this.canvas.getBoundingClientRect();
+      this.width = rect.width || 400;
+      this.height = rect.height || 60;
+      this.canvas.width = this.width * window.devicePixelRatio;
+      this.canvas.height = this.height * window.devicePixelRatio;
+      this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+
+    setVolume(volume) {
+      this.targetEnergy = Math.min(1.0, Math.max(0.05, volume * 4.5));
+    }
+
+    start() {
+      if (this.isRunning) return;
+      this.isRunning = true;
+      this.animate();
+    }
+
+    stop() {
+      this.isRunning = false;
+      if (this.animId) cancelAnimationFrame(this.animId);
+    }
+
+    animate() {
+      if (!this.isRunning) return;
+      this.energy += (this.targetEnergy - this.energy) * 0.15;
+      this.targetEnergy *= 0.95;
+      this.phase += 0.025 + this.energy * 0.04;
+      this.draw();
+      this.animId = requestAnimationFrame(() => this.animate());
+    }
+
+    draw() {
+      const { ctx, width, height, phase, energy } = this;
+      ctx.clearRect(0, 0, width, height);
+
+      const centerY = height * 0.5;
+      const baseAmp = height * 0.16 + height * 0.35 * energy;
+
+      const layers = [
+        { color: 'rgba(163, 231, 216, 0.45)', freq: 0.015, speed: 1.2, offset: 0, amp: baseAmp },
+        { color: 'rgba(111, 155, 140, 0.35)', freq: 0.02, speed: 0.8, offset: Math.PI / 2, amp: baseAmp * 0.7 },
+        { color: 'rgba(242, 166, 122, 0.25)', freq: 0.01, speed: 1.5, offset: Math.PI, amp: baseAmp * 0.5 }
+      ];
+
+      layers.forEach(layer => {
+        ctx.beginPath();
+        ctx.strokeStyle = layer.color;
+        ctx.lineWidth = 2.5;
+
+        for (let x = 0; x <= width; x += 3) {
+          const envelope = Math.sin((x / width) * Math.PI);
+          const y = centerY + Math.sin(x * layer.freq + phase * layer.speed + layer.offset) * layer.amp * envelope;
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      });
+    }
+  }
+
+  // Voice Preview Player
+  async function playVoicePreview(voice, lang, btn) {
+    if (state.activePreviewAudio) {
+      try {
+        state.activePreviewAudio.pause();
+        state.activePreviewAudio = null;
+      } catch (e) {}
+    }
+    document.querySelectorAll('.btn-voice-preview').forEach(b => {
+      b.classList.remove('playing');
+      const lbl = b.querySelector('.preview-label');
+      if (lbl) lbl.textContent = t('livePreviewVoice');
+    });
+
+    btn.classList.add('playing');
+    const label = btn.querySelector('.preview-label');
+    if (label) label.textContent = t('livePlayingPreview');
+
+    try {
+      const res = await fetch('/api/live-interview/preview-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voice, language: lang })
+      });
+      if (!res.ok) throw new Error('Preview request failed');
+      const blob = await res.blob();
+      const audioUrl = URL.createObjectURL(blob);
+      const audio = new Audio(audioUrl);
+      state.activePreviewAudio = audio;
+
+      audio.onended = () => {
+        btn.classList.remove('playing');
+        if (label) label.textContent = t('livePreviewVoice');
+        state.activePreviewAudio = null;
+      };
+      audio.onerror = () => {
+        btn.classList.remove('playing');
+        if (label) label.textContent = t('livePreviewVoice');
+        state.activePreviewAudio = null;
+      };
+      await audio.play();
+    } catch (err) {
+      console.warn('Voice preview error:', err);
+      btn.classList.remove('playing');
+      if (label) label.textContent = t('livePreviewVoice');
+      showToast('Could not load voice preview. Please check connection.');
+    }
+  }
+
+  function updateLiveTimerDisplay(seconds) {
+    const s = Math.max(0, Math.round(Number(seconds) || 0));
+    const m = Math.floor(s / 60);
+    const rem = s % 60;
+    if (dom.liveRoomTimer) {
+      dom.liveRoomTimer.textContent = `${m.toString().padStart(2, '0')}:${rem.toString().padStart(2, '0')}`;
+    }
+  }
+
+  function showTranscriptConfirmation(text) {
+    if (!dom.transcriptConfirmCard) return;
+    const isId = state.liveConfig.language === 'id';
+    const trimmed = (text || '').trim();
+
+    if (trimmed === '...') {
+      // Audio transcribe fallback in progress
+      if (dom.confirmCardTitle) dom.confirmCardTitle.textContent = isId ? 'Memeriksa ucapanmu...' : 'Checking what you said...';
+      if (dom.confirmTranscriptText) dom.confirmTranscriptText.textContent = isId ? 'Coach sedang memeriksa rekaman suara...' : 'Checking your voice recording...';
+      if (dom.btnConfirmRight) dom.btnConfirmRight.style.display = 'none';
+      if (dom.btnConfirmRetry) dom.btnConfirmRetry.style.display = 'none';
+    } else if (!trimmed) {
+      // Section 7: If audio empty, very short, or transcript cannot be trusted
+      if (dom.confirmCardTitle) dom.confirmCardTitle.textContent = isId ? 'Aku kurang menangkap bagian itu. Coba ulangi?' : "I didn't quite catch that. Try again?";
+      if (dom.confirmTranscriptText) dom.confirmTranscriptText.textContent = isId ? '(Suara belum terdeteksi dengan jelas. Tekan tombol Speak again untuk berbicara kembali)' : '(No clear speech detected. Click Speak again to try again)';
+      if (dom.btnConfirmRight) dom.btnConfirmRight.style.display = 'none';
+      if (dom.btnConfirmRetry) {
+        dom.btnConfirmRetry.style.display = 'inline-flex';
+        dom.btnConfirmRetry.textContent = '↻ Speak again';
+      }
+    } else {
+      // Section 4: Valid user transcript
+      if (dom.confirmCardTitle) dom.confirmCardTitle.textContent = 'Did I hear you right?';
+      if (dom.confirmTranscriptText) dom.confirmTranscriptText.textContent = `“${trimmed}”`;
+      if (dom.btnConfirmRight) {
+        dom.btnConfirmRight.style.display = 'inline-flex';
+        dom.btnConfirmRight.textContent = "✓ That's right";
+      }
+      if (dom.btnConfirmRetry) {
+        dom.btnConfirmRetry.style.display = 'inline-flex';
+        dom.btnConfirmRetry.textContent = '↻ Speak again';
+      }
+    }
+
+    dom.transcriptConfirmCard.style.display = 'flex';
+    if (dom.btnDoneSpeaking) dom.btnDoneSpeaking.style.display = 'none';
+  }
+
+  // Start Live Interview / TalkWith Coach Real-Time Session Flow
+  async function startLiveInterviewFlow() {
+    const lang = state.liveConfig.language;
+    const voice = state.liveConfig.voice || 'Puck';
+
+    const type = state.liveConfig.interviewType || 'School';
+
+    let durationMins = state.liveConfig.durationMinutes;
+    if (durationMins === 'custom' && dom.liveCustomDurationInput) {
+      durationMins = Math.min(30, Math.max(1, parseInt(dom.liveCustomDurationInput.value, 10) || 5));
+    } else {
+      durationMins = parseInt(durationMins, 10) || 5;
+    }
+
+    const config = {
+      language: lang,
+      voice: voice,
+      interviewType: type,
+      durationMinutes: durationMins
+    };
+
+    switchView('liveRoom');
+
+    // Reset Live Room UI
+    dom.liveStatusText.textContent = t('connectingAi');
+    if (dom.liveAiOrbContainer) {
+      dom.liveAiOrbContainer.className = 'live-ai-orb-container state-connecting';
+    }
+    if (dom.liveRoomAlert) dom.liveRoomAlert.style.display = 'none';
+    if (dom.liveTranscriptFeed) dom.liveTranscriptFeed.innerHTML = '';
+    if (dom.transcriptConfirmCard) dom.transcriptConfirmCard.style.display = 'none';
+    if (dom.btnDoneSpeaking) dom.btnDoneSpeaking.style.display = 'none';
+    if (dom.liveSpeechBubble) {
+      dom.liveSpeechBubble.style.opacity = 0;
+      dom.bubbleText.textContent = '';
+    }
+    dom.btnMicLabel.textContent = t('muteMicBtn');
+    dom.btnToggleLiveMic.classList.remove('muted');
+
+    state.liveRemainingSeconds = durationMins * 60;
+    state.liveElapsedSeconds = 0;
+    updateLiveTimerDisplay(state.liveRemainingSeconds);
+
+    // Instantiate EchoraLiveInterview
+    state.liveSession = new EchoraLiveInterview({
+      onStateChange: (newState) => {
+        handleLiveStateChange(newState);
+      },
+      onTranscriptUpdate: (transcript, entry) => {
+        handleLiveTranscriptUpdate(transcript, entry);
+      },
+      onTranscriptConfirmation: (confirmedText) => {
+        showTranscriptConfirmation(confirmedText);
+      },
+      onVolumeChange: (rms, source) => {
+        if (state.liveWaveVisualizer) {
+          state.liveWaveVisualizer.setVolume(rms);
+        }
+      },
+      onError: (errMsg) => {
+        handleLiveError(errMsg);
+      },
+      onTurnComplete: () => {
+        setTimeout(() => {
+          if (state.liveSession && state.liveSession.state === 'listening' && dom.liveSpeechBubble) {
+            dom.liveSpeechBubble.style.opacity = 0.6;
+          }
+        }, 2500);
+      }
+    });
+
+    const success = await state.liveSession.startSession(config);
+    if (!success) {
+      return;
+    }
+
+    // Start Timer Interval
+    if (state.liveTimerInterval) clearInterval(state.liveTimerInterval);
+    state.liveTimerInterval = setInterval(() => {
+      state.liveRemainingSeconds--;
+      state.liveElapsedSeconds++;
+      updateLiveTimerDisplay(state.liveRemainingSeconds);
+
+      if (state.liveRemainingSeconds <= 0) {
+        clearInterval(state.liveTimerInterval);
+        state.liveTimerInterval = null;
+        finishLiveInterview();
+      }
+    }, 1000);
+  }
+
+  function handleLiveStateChange(newState) {
+    if (!dom.liveAiOrbContainer) return;
+    const isId = state.liveConfig.language === 'id';
+
+    dom.liveAiOrbContainer.className = `live-ai-orb-container state-${newState}`;
+
+    switch (newState) {
+      case 'connecting':
+        dom.liveStatusText.textContent = t('connectingAi');
+        if (dom.transcriptConfirmCard) dom.transcriptConfirmCard.style.display = 'none';
+        if (dom.btnDoneSpeaking) dom.btnDoneSpeaking.style.display = 'none';
+        break;
+      case 'listening':
+        dom.liveStatusText.textContent = t('stateListening');
+        if (dom.transcriptConfirmCard) dom.transcriptConfirmCard.style.display = 'none';
+        if (dom.btnDoneSpeaking) dom.btnDoneSpeaking.style.display = 'inline-flex';
+        break;
+      case 'confirming':
+        dom.liveStatusText.textContent = t('stateConfirming');
+        if (dom.btnDoneSpeaking) dom.btnDoneSpeaking.style.display = 'none';
+        break;
+      case 'thinking':
+        dom.liveStatusText.textContent = t('stateThinking');
+        if (dom.transcriptConfirmCard) dom.transcriptConfirmCard.style.display = 'none';
+        if (dom.btnDoneSpeaking) dom.btnDoneSpeaking.style.display = 'none';
+        break;
+      case 'speaking':
+        dom.liveStatusText.textContent = t('stateSpeaking');
+        if (dom.transcriptConfirmCard) dom.transcriptConfirmCard.style.display = 'none';
+        if (dom.btnDoneSpeaking) dom.btnDoneSpeaking.style.display = 'none';
+        break;
+      case 'idle':
+        dom.liveStatusText.textContent = t('stateIdle');
+        if (dom.transcriptConfirmCard) dom.transcriptConfirmCard.style.display = 'none';
+        if (dom.btnDoneSpeaking) dom.btnDoneSpeaking.style.display = 'none';
+        break;
+      case 'error':
+        dom.liveStatusText.textContent = isId ? 'Koneksi Terputus' : 'Connection Lost';
+        if (dom.btnDoneSpeaking) dom.btnDoneSpeaking.style.display = 'none';
+        break;
+    }
+  }
+
+  function handleLiveTranscriptUpdate(transcript, entry) {
+    if (!entry || !entry.text) return;
+
+    // 1. Update Live Subtitle Bubble
+    if (dom.liveSpeechBubble && dom.bubbleText && dom.bubbleSpeakerTag) {
+      const isUser = entry.sender === 'user';
+      dom.bubbleSpeakerTag.textContent = isUser ? 'YOU' : 'COACH';
+      dom.bubbleSpeakerTag.className = `bubble-speaker-tag ${isUser ? 'user' : 'ai'}`;
+      dom.bubbleText.textContent = entry.text;
+      dom.liveSpeechBubble.style.opacity = 1;
+    }
+
+    // 2. Append in Transcript Panel (only on final sentences)
+    if (dom.liveTranscriptFeed && !entry.isInterim) {
+      const item = document.createElement('div');
+      item.className = `transcript-entry ${entry.sender}`;
+      item.innerHTML = `
+        <span class="transcript-sender">${entry.sender === 'user' ? 'You' : 'Coach'}</span>
+        <span class="transcript-text">${escapeHtml(entry.text)}</span>
+      `;
+      dom.liveTranscriptFeed.appendChild(item);
+      dom.liveTranscriptFeed.scrollTop = dom.liveTranscriptFeed.scrollHeight;
+    }
+  }
+
+  function handleLiveError(errMsg) {
+    if (dom.liveRoomAlert && dom.liveAlertText) {
+      dom.liveAlertText.textContent = errMsg || 'Connection lost.';
+      dom.liveRoomAlert.style.display = 'flex';
+    }
+  }
+
+  async function finishLiveInterview() {
+    if (state.liveTimerInterval) {
+      clearInterval(state.liveTimerInterval);
+      state.liveTimerInterval = null;
+    }
+
+    showToast(state.liveConfig.language === 'id' ? 'Menyusun umpan balik dari Coach...' : 'Formulating coaching feedback...');
+
+    try {
+      if (state.liveSession) {
+        const resultSession = await state.liveSession.endInterview(state.liveElapsedSeconds);
+        state.sessions.unshift(resultSession);
+        renderLiveResult(resultSession);
+        switchView('liveResult');
+        fetchSessions();
+        fetchProfile();
+      }
+    } catch (err) {
+      console.error('Error ending interview:', err);
+      showToast('Session completed. Redirecting to history...');
+      switchView('history');
+    }
+  }
+
+  function renderLiveResult(session) {
+    const isId = session.language === 'id';
+    dom.liveResultTopicTitle.textContent = session.topic || 'TalkWith Coach';
+    dom.liveResultTypeBadge.textContent = session.category || 'Opinion';
+    dom.liveResultDiffBadge.textContent = session.difficulty || 'Casual';
+    dom.liveResultLangBadge.textContent = isId ? 'Bahasa Indonesia' : 'English';
+    const dur = session.duration || 180;
+    const durMins = Math.floor(dur / 60);
+    const durSecs = dur % 60;
+    const durFormatted = `${durMins.toString().padStart(2, '0')}:${durSecs.toString().padStart(2, '0')}`;
+    dom.liveResultDurationBadge.textContent = `${durMins}m ${durSecs}s`;
+
+    // Talked Duration Highlight
+    if (dom.liveResultTalkedTime) {
+      dom.liveResultTalkedTime.textContent = isId
+        ? `Kamu berbicara selama ${durFormatted}`
+        : `You talked for ${durFormatted}`;
+    }
+
+    // Coach Noticed (2 positive points)
+    if (dom.liveResultCoachNoticed) {
+      dom.liveResultCoachNoticed.innerHTML = '';
+      const noticed = session.feedback?.coachNoticed || session.feedback?.whatYouDidWell || [
+        isId ? 'Gagasanmu tersampaikan dengan jelas dan percaya diri.' : 'Your ideas were clearly expressed with natural confidence.',
+        isId ? 'Alur penjelasanmu mudah diikuti dan relevan dengan topik.' : 'Your pacing was easy to follow and directly on-point.'
+      ];
+      noticed.slice(0, 2).forEach(pt => {
+        const li = document.createElement('li');
+        li.className = 'feedback-bullet-item';
+        li.textContent = pt;
+        dom.liveResultCoachNoticed.appendChild(li);
+      });
+    }
+
+    // 🎯 One Change (1 single actionable tip)
+    if (dom.liveResultOneChange) {
+      const oneChange = session.feedback?.oneChange || (session.feedback?.whatToImprove && session.feedback.whatToImprove[0]) || (
+        isId
+          ? 'Coba sebutkan poin utamamu di kalimat pertama sebelum menjelaskan detail contohnya.'
+          : 'Try stating your main point in the first sentence before diving into examples.'
+      );
+      dom.liveResultOneChange.textContent = `“${oneChange}”`;
+    }
+
+    // Dialogue Transcript List
+    if (dom.liveResultDialogueList) {
+      dom.liveResultDialogueList.innerHTML = '';
+      const transcript = session.transcript || [];
+      if (dom.liveResultTurnCount) {
+        dom.liveResultTurnCount.textContent = `${transcript.length} ${isId ? 'giliran' : 'turns'}`;
+      }
+
+      if (transcript.length === 0) {
+        dom.liveResultDialogueList.innerHTML = `<div style="font-size:0.85rem; color:var(--text-muted); padding:12px;">${isId ? 'Tidak ada percakapan tercatat.' : 'No dialogue recorded.'}</div>`;
+      } else {
+        transcript.forEach(t => {
+          const isUser = t.sender === 'user';
+          const item = document.createElement('div');
+          item.className = `dialogue-item ${isUser ? 'user' : 'ai'}`;
+          item.innerHTML = `
+            <div class="dialogue-avatar">${isUser ? '👤' : '🎙️'}</div>
+            <div class="dialogue-content">
+              <div class="dialogue-speaker-name">${isUser ? (isId ? 'Siswa' : 'Student') : 'Coach'}</div>
+              <div class="dialogue-text">${escapeHtml(t.text)}</div>
+            </div>
+          `;
+          dom.liveResultDialogueList.appendChild(item);
+        });
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------
   // Event Bindings
   // --------------------------------------------------------------------------
   function setupEventListeners() {
     // Navigation
-    dom.navBrand.addEventListener('click', () => switchView('landing'));
-    dom.navDashboard.addEventListener('click', () => switchView('dashboard'));
+    dom.navBrand.addEventListener('click', () => {
+      switchView('landing');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    if (dom.navLiveInterview) {
+      dom.navLiveInterview.addEventListener('click', () => switchView('liveSetup'));
+    }
+    dom.navDashboard.addEventListener('click', () => {
+      switchView('landing');
+      const practiceSection = document.getElementById('section-practice');
+      if (practiceSection) practiceSection.scrollIntoView({ behavior: 'smooth' });
+    });
     dom.navHistory.addEventListener('click', () => switchView('history'));
-    dom.btnViewAllHistory.addEventListener('click', () => switchView('history'));
-    dom.heroStart.addEventListener('click', () => switchView('dashboard'));
-    dom.navStart.addEventListener('click', () => switchView('dashboard'));
+    if (dom.btnViewAllHistory) {
+      dom.btnViewAllHistory.addEventListener('click', () => switchView('history'));
+    }
+    if (dom.heroStart) {
+      dom.heroStart.addEventListener('click', (e) => {
+        e.preventDefault();
+        const practiceSection = document.getElementById('section-practice');
+        if (practiceSection) practiceSection.scrollIntoView({ behavior: 'smooth' });
+      });
+    }
+    if (dom.navStart) {
+      dom.navStart.addEventListener('click', () => {
+        switchView('landing');
+        const practiceSection = document.getElementById('section-practice');
+        if (practiceSection) practiceSection.scrollIntoView({ behavior: 'smooth' });
+      });
+    }
+
+    // Hero secondary button: TalkWith Coach
+    const ctaHeroCoach = document.getElementById('cta-hero-coach');
+    if (ctaHeroCoach) {
+      ctaHeroCoach.addEventListener('click', () => switchView('liveSetup'));
+    }
+
+    // Showcase Launch button
+    const btnShowcaseLaunchCoach = document.getElementById('btn-showcase-launch-coach');
+    if (btnShowcaseLaunchCoach) {
+      btnShowcaseLaunchCoach.addEventListener('click', () => switchView('liveSetup'));
+    }
+
+    // Showcase interactive demo buttons (Simulate confirm & speak again flow)
+    const btnShowcaseDemoConfirm = document.getElementById('btn-showcase-demo-confirm');
+    const btnShowcaseDemoRetry = document.getElementById('btn-showcase-demo-retry');
+    const showcaseReply = document.getElementById('showcase-sample-reply');
+
+    if (btnShowcaseDemoConfirm) {
+      btnShowcaseDemoConfirm.addEventListener('click', () => {
+        const isId = state.currentLang === 'id';
+        btnShowcaseDemoConfirm.style.transform = 'scale(0.95)';
+        setTimeout(() => { btnShowcaseDemoConfirm.style.transform = 'scale(1)'; }, 150);
+        showToast(isId ? '✓ Jawaban dikonfirmasi! AI coach merespons.' : '✓ Transcript confirmed! AI coach is responding.', 2500);
+        if (showcaseReply) {
+          showcaseReply.style.opacity = '0.5';
+          setTimeout(() => {
+            showcaseReply.style.opacity = '1';
+          }, 350);
+        }
+      });
+    }
+
+    if (btnShowcaseDemoRetry) {
+      btnShowcaseDemoRetry.addEventListener('click', () => {
+        const isId = state.currentLang === 'id';
+        btnShowcaseDemoRetry.style.transform = 'scale(0.95)';
+        setTimeout(() => { btnShowcaseDemoRetry.style.transform = 'scale(1)'; }, 150);
+        showToast(isId ? '↻ Mikrofon siap kembali. Silakan bicara lagi!' : '↻ Microphone reactivated. Speak again!', 2500);
+      });
+    }
+
+    const btnDashLaunchLive = document.getElementById('btn-dash-launch-live');
+    if (btnDashLaunchLive) {
+      btnDashLaunchLive.addEventListener('click', () => switchView('liveSetup'));
+    }
+
+    // Live Interview Setup Interactions
+    // 1. Language selector
+    document.querySelectorAll('.live-lang-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.live-lang-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        const lang = card.getAttribute('data-lang');
+        state.liveConfig.language = lang;
+        // Update voice tone labels
+        document.querySelectorAll('.voice-tone').forEach(el => {
+          el.textContent = lang === 'id' ? el.getAttribute('data-tone-id') : el.getAttribute('data-tone-en');
+        });
+      });
+    });
+
+    // 2. Voice cards selection & preview
+    document.querySelectorAll('.voice-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-voice-preview')) return;
+        document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        state.liveConfig.voice = card.getAttribute('data-voice');
+      });
+    });
+
+    document.querySelectorAll('.btn-voice-preview').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const voice = btn.getAttribute('data-voice');
+        const lang = state.liveConfig.language;
+        await playVoicePreview(voice, lang, btn);
+      });
+    });
+
+    // 3. Interview type selector pills
+    document.querySelectorAll('#live-type-selector .pill-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#live-type-selector .pill-option').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        const val = btn.getAttribute('data-val');
+        state.liveConfig.interviewType = val;
+        if (dom.liveCustomTopicWrap) {
+          dom.liveCustomTopicWrap.style.display = val === 'Custom' ? 'block' : 'none';
+        }
+      });
+    });
+
+    // 6. Duration selector pills
+    document.querySelectorAll('#live-duration-selector .pill-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#live-duration-selector .pill-option').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        const val = btn.getAttribute('data-val');
+        state.liveConfig.durationMinutes = val;
+        if (dom.liveCustomDurationWrap) {
+          dom.liveCustomDurationWrap.style.display = val === 'custom' ? 'block' : 'none';
+        }
+      });
+    });
+
+    // Start Live Interview button
+    if (dom.btnStartLiveSession) {
+      dom.btnStartLiveSession.addEventListener('click', startLiveInterviewFlow);
+    }
+
+    // Live Room Controls
+    if (dom.btnConfirmRight) {
+      dom.btnConfirmRight.addEventListener('click', () => {
+        if (dom.transcriptConfirmCard) dom.transcriptConfirmCard.style.display = 'none';
+        if (state.liveSession) state.liveSession.confirmTurn();
+      });
+    }
+
+    if (dom.btnConfirmRetry) {
+      dom.btnConfirmRetry.addEventListener('click', () => {
+        if (dom.transcriptConfirmCard) dom.transcriptConfirmCard.style.display = 'none';
+        if (state.liveSession) state.liveSession.retrySpeaking();
+      });
+    }
+
+    if (dom.btnDoneSpeaking) {
+      dom.btnDoneSpeaking.addEventListener('click', () => {
+        if (state.liveSession) state.liveSession.doneSpeaking();
+      });
+    }
+
+    if (dom.btnToggleLiveMic) {
+      dom.btnToggleLiveMic.addEventListener('click', () => {
+        if (!state.liveSession) return;
+        const isMuted = state.liveSession.toggleMute();
+        dom.btnMicLabel.textContent = isMuted ? t('unmuteMicBtn') : t('muteMicBtn');
+        dom.btnToggleLiveMic.classList.toggle('muted', isMuted);
+      });
+    }
+
+    if (dom.btnToggleLiveTranscript) {
+      dom.btnToggleLiveTranscript.addEventListener('click', () => {
+        if (!dom.liveTranscriptPanel) return;
+        const isOpen = dom.liveTranscriptPanel.style.display === 'flex';
+        dom.liveTranscriptPanel.style.display = isOpen ? 'none' : 'flex';
+        dom.btnTranscriptLabel.textContent = isOpen ? t('showTranscriptBtn') : t('hideTranscriptBtn');
+      });
+    }
+
+    if (dom.btnCloseTranscriptPanel) {
+      dom.btnCloseTranscriptPanel.addEventListener('click', () => {
+        if (dom.liveTranscriptPanel) dom.liveTranscriptPanel.style.display = 'none';
+        if (dom.btnTranscriptLabel) dom.btnTranscriptLabel.textContent = t('showTranscriptBtn');
+      });
+    }
+
+    if (dom.btnEndLiveInterview) {
+      dom.btnEndLiveInterview.addEventListener('click', () => {
+        const isId = state.liveConfig.language === 'id';
+        const msg = isId ? 'Akhiri sesi wawancara sekarang dan lihat evaluasi AI?' : 'End interview now and see your AI evaluation?';
+        if (confirm(msg)) {
+          finishLiveInterview();
+        }
+      });
+    }
+
+    if (dom.btnLiveRoomExit) {
+      dom.btnLiveRoomExit.addEventListener('click', () => {
+        const isId = state.liveConfig.language === 'id';
+        const msg = isId ? 'Yakin ingin keluar dari wawancara?' : 'Are you sure you want to exit the interview?';
+        if (confirm(msg)) {
+          if (state.liveSession) {
+            state.liveSession.cleanupAudio();
+          }
+          switchView('dashboard');
+        }
+      });
+    }
+
+    if (dom.btnLiveReconnect) {
+      dom.btnLiveReconnect.addEventListener('click', () => {
+        startLiveInterviewFlow();
+      });
+    }
+
+    // Live Result actions
+    if (dom.btnLivePracticeAgain) {
+      dom.btnLivePracticeAgain.addEventListener('click', () => switchView('liveSetup'));
+    }
+    if (dom.btnLiveViewHistory) {
+      dom.btnLiveViewHistory.addEventListener('click', () => switchView('history'));
+    }
+    if (dom.btnLiveBackDashboard) {
+      dom.btnLiveBackDashboard.addEventListener('click', () => switchView('dashboard'));
+    }
 
     // Language buttons
     dom.langBtnEn.addEventListener('click', () => setLanguage('en'));

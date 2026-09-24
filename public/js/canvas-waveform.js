@@ -44,11 +44,12 @@ class AmbientWaveform {
 
     const centerY = height * 0.52;
 
-    // Define 3 subtle organic wave layers (Deep Forest & Soft Green palette)
+    // Define subtle organic wave layers (Deep Forest, Mint & Warm Peach palette)
     const layers = [
-      { color: 'rgba(36, 87, 77, 0.25)', speed: 1.0, freq: 0.005, amp: height * 0.12, offset: 0 },
-      { color: 'rgba(111, 155, 140, 0.18)', speed: 1.3, freq: 0.008, amp: height * 0.09, offset: Math.PI / 3 },
-      { color: 'rgba(191, 216, 203, 0.12)', speed: 0.7, freq: 0.0035, amp: height * 0.15, offset: Math.PI / 1.5 }
+      { color: 'rgba(36, 87, 77, 0.28)', speed: 1.0, freq: 0.005, amp: height * 0.12, offset: 0 },
+      { color: 'rgba(111, 155, 140, 0.20)', speed: 1.3, freq: 0.008, amp: height * 0.09, offset: Math.PI / 3 },
+      { color: 'rgba(191, 216, 203, 0.14)', speed: 0.7, freq: 0.0035, amp: height * 0.15, offset: Math.PI / 1.5 },
+      { color: 'rgba(242, 166, 122, 0.10)', speed: 0.85, freq: 0.006, amp: height * 0.07, offset: Math.PI / 2.2 }
     ];
 
     layers.forEach(layer => {
