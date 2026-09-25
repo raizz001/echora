@@ -86,9 +86,12 @@ CRITICAL TRANSCRIPTION RULES:
 5. If the audio is completely silent, contains only unintelligible noise, or has no discernible speech, return exactly: EMPTY`;
 
   // Verify Gemini understands strict verbatim transcription rules
-  const testRuleResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+  const testRuleResp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey
+    },
     body: JSON.stringify({
       contents: [{
         parts: [

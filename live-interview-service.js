@@ -86,8 +86,12 @@ async function generateVoicePreview(voiceName, language, apiKey) {
     : 'Hello! This is a preview of my voice for your interview session on ECHORA.';
 
   return new Promise((resolve, reject) => {
-    const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`;
-    const ws = new WebSocket(url);
+    const url = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
+    const ws = new WebSocket(url, {
+      headers: {
+        'x-goog-api-key': apiKey
+      }
+    });
     const chunks = [];
     let timeoutId = null;
 
@@ -250,13 +254,66 @@ function setupLiveInterview(server, app, storageHelpers) {
     });
   });
 
+  // REST: POST /api/ai/test-key (Validate user Gemini API key safely)
+  app.post('/api/ai/test-key', async (req, res) => {
+    try {
+      const apiKey = (req.headers['x-gemini-api-key'] || '').trim();
+
+      if (!apiKey || apiKey.length < 10) {
+        return res.status(400).json({
+          success: false,
+          error: 'INVALID_FORMAT',
+          message: 'Invalid API key format. Please check your Gemini API key.'
+        });
+      }
+
+      const testUrl = `https://generativelanguage.googleapis.com/v1beta/models?pageSize=1`;
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        }
+      });
+
+      if (response.ok) {
+        console.log('[BYOK] Gemini API key connection test: SUCCESS');
+        return res.json({
+          success: true,
+          message: 'Gemini connection successful'
+        });
+      } else if (response.status === 429) {
+        return res.status(429).json({
+          success: false,
+          error: 'QUOTA_EXCEEDED',
+          message: 'Gemini API quota or rate limit was reached. Please check your Gemini account.'
+        });
+      } else {
+        console.warn('[BYOK] Gemini API key connection test returned status:', response.status);
+        return res.status(401).json({
+          success: false,
+          error: 'AUTH_FAILED',
+          message: 'Invalid Gemini API key'
+        });
+      }
+    } catch (err) {
+      const safeMsg = err.message ? err.message.replace(/key=[^&]+/g, 'key=[REDACTED]') : 'Network error';
+      console.error('[BYOK] Test connection error:', safeMsg);
+      return res.status(500).json({
+        success: false,
+        error: 'NETWORK_ERROR',
+        message: 'Unable to connect to Gemini right now. Please try again.'
+      });
+    }
+  });
+
   // REST: POST /api/live-interview/preview-voice
   app.post('/api/live-interview/preview-voice', async (req, res) => {
     const { voice = 'Puck', language = 'en' } = req.body;
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = (req.headers['x-gemini-api-key'] || '').trim();
 
     if (!apiKey) {
-      return res.status(400).json({ error: 'GEMINI_API_KEY is not configured' });
+      return res.status(400).json({ error: 'API_KEY_REQUIRED', message: 'Gemini API key is not configured. Please add your API key in Settings.' });
     }
 
     const verifiedVoice = VERIFIED_VOICES.find(v => v.id.toLowerCase() === voice.toLowerCase())?.id || 'Puck';
@@ -267,16 +324,18 @@ function setupLiveInterview(server, app, storageHelpers) {
       res.setHeader('Content-Length', wavBuffer.length);
       return res.send(wavBuffer);
     } catch (err) {
-      console.error('[LiveInterview] Preview generation error:', err);
-      res.status(500).json({ error: 'Failed to generate voice preview', details: err.message });
+      const safeMsg = err.message ? err.message.replace(/key=[^&]+/g, 'key=[REDACTED]') : 'Preview error';
+      console.error('[LiveInterview] Preview generation error:', safeMsg);
+      res.status(500).json({ error: 'Failed to generate voice preview', details: safeMsg });
     }
   });
 
   // REST: POST /api/live-interview/transcribe (High-accuracy Gemini audio transcription)
   app.post('/api/live-interview/transcribe', async (req, res) => {
     try {
-      const { audioData, mimeType = 'audio/webm', language = 'id' } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY;
+      const { audioData, mimeType = 'audio/webm', language = 'id', sessionId } = req.body;
+      const session = sessionId ? activeSessions.get(sessionId) : null;
+      const apiKey = (req.headers['x-gemini-api-key'] || session?.apiKey || '').trim();
 
       if (!apiKey || !audioData) {
         return res.json({ transcript: '' });
@@ -302,9 +361,12 @@ CRITICAL TRANSCRIPTION RULES:
 
       for (const model of transcribeModels) {
         try {
-          const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': apiKey
+            },
             body: JSON.stringify({
               contents: [{
                 parts: [
@@ -336,7 +398,8 @@ CRITICAL TRANSCRIPTION RULES:
             }
           }
         } catch (err) {
-          console.warn(`[TalkWithCoach] Transcribe error with ${model}:`, err.message);
+          const safeMsg = err.message ? err.message.replace(/key=[^&]+/g, 'key=[REDACTED]') : '';
+          console.warn(`[TalkWithCoach] Transcribe error with ${model}:`, safeMsg);
         }
       }
 
@@ -356,10 +419,11 @@ CRITICAL TRANSCRIPTION RULES:
       durationMinutes = 5
     } = req.body;
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = (req.headers['x-gemini-api-key'] || '').trim();
     if (!apiKey) {
-      return res.status(500).json({
-        error: 'AI Voice Service unavailable: GEMINI_API_KEY is not configured.'
+      return res.status(400).json({
+        error: 'API_KEY_REQUIRED',
+        message: 'Gemini API key is not configured. Please add your API key in Settings.'
       });
     }
 
@@ -373,14 +437,19 @@ CRITICAL TRANSCRIPTION RULES:
       interviewType: interviewType || 'School',
       durationMinutes: Number(durationMinutes) || 5,
       createdAt: Date.now(),
-      transcript: []
+      transcript: [],
+      apiKey // Held in active in-memory sessions map only for active session, never persisted to disk/DB
     };
 
     activeSessions.set(sessionId, sessionConfig);
 
     // Auto-clean stale sessions after 2 hours
     setTimeout(() => {
-      activeSessions.delete(sessionId);
+      const s = activeSessions.get(sessionId);
+      if (s) {
+        delete s.apiKey;
+        activeSessions.delete(sessionId);
+      }
     }, 2 * 60 * 60 * 1000);
 
     res.status(201).json({
@@ -419,7 +488,7 @@ CRITICAL TRANSCRIPTION RULES:
       };
 
       const fullTranscript = transcript.length > 0 ? transcript : (session.transcript || []);
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = (req.headers['x-gemini-api-key'] || session?.apiKey || '').trim();
       const isId = language === 'id';
 
       const durSeconds = Math.round(Number(duration)) || 0;
@@ -461,9 +530,12 @@ Return ONLY valid JSON matching this exact structure:
           const evalModels = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.6-flash'];
           for (const m of evalModels) {
             try {
-              const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`, {
+              const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-goog-api-key': apiKey
+                },
                 body: JSON.stringify({
                   contents: [{ parts: [{ text: prompt }] }],
                   generationConfig: {
@@ -484,11 +556,13 @@ Return ONLY valid JSON matching this exact structure:
                 }
               }
             } catch (singleErr) {
-              console.warn(`[TalkWithCoach] Evaluation model ${m} error:`, singleErr.message);
+              const safeMsg = singleErr.message ? singleErr.message.replace(/key=[^&]+/g, 'key=[REDACTED]') : '';
+              console.warn(`[TalkWithCoach] Evaluation model ${m} error:`, safeMsg);
             }
           }
         } catch (evalErr) {
-          console.warn('[TalkWithCoach] Gemini evaluation failed, using heuristic:', evalErr.message);
+          const safeMsg = evalErr.message ? evalErr.message.replace(/key=[^&]+/g, 'key=[REDACTED]') : '';
+          console.warn('[TalkWithCoach] Gemini evaluation failed, using heuristic:', safeMsg);
         }
       }
 
@@ -554,6 +628,9 @@ Return ONLY valid JSON matching this exact structure:
       const sessions = getSessions();
       sessions.unshift(newSession);
       saveSessions(sessions);
+      if (session) {
+        delete session.apiKey;
+      }
       activeSessions.delete(sessionId);
 
       res.status(201).json(newSession);
@@ -588,9 +665,9 @@ Return ONLY valid JSON matching this exact structure:
       return;
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = session.apiKey;
     if (!apiKey) {
-      ws.send(JSON.stringify({ type: 'error', message: 'GEMINI_API_KEY is not configured on server' }));
+      ws.send(JSON.stringify({ type: 'error', message: 'Gemini API key is required for TalkWith Coach. Please configure in Settings.' }));
       ws.close();
       return;
     }
@@ -598,12 +675,16 @@ Return ONLY valid JSON matching this exact structure:
     console.log(`[LiveInterview] Client connected for session: ${sessionId} (Voice: ${session.voice}, Lang: ${session.language})`);
 
     // Connect to Google Gemini Multimodal Live API
-    const geminiUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${apiKey}`;
+    const geminiUrl = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent';
     let geminiWs = null;
     let isGeminiReady = false;
 
     try {
-      geminiWs = new WebSocket(geminiUrl);
+      geminiWs = new WebSocket(geminiUrl, {
+        headers: {
+          'x-goog-api-key': apiKey
+        }
+      });
     } catch (err) {
       console.error('[LiveInterview] Failed to create Gemini WebSocket:', err);
       ws.send(JSON.stringify({ type: 'error', message: 'Could not connect to Gemini Live service' }));
@@ -611,10 +692,14 @@ Return ONLY valid JSON matching this exact structure:
       return;
     }
 
-    // Latency tracking metrics
-    let lastClientAudioTime = 0;
+    // Latency & state tracking metrics
+    let speechStartTime = 0;
+    let speechEndTime = 0;
+    let geminiRequestTime = 0;
+    let firstAudioResponseTime = 0;
+    let turnCompleteTime = 0;
     let firstAudioSentForTurn = false;
-    let clientAudioChunkCount = 0;
+    let turnInterrupted = false;
     let currentAiTurnText = '';
 
     // Upstream: Connected to Gemini
@@ -670,6 +755,11 @@ Return ONLY valid JSON matching this exact structure:
 
             // Trigger the Coach's opening greeting and topic question automatically
             const openingPrompt = getOpeningPrompt(session.interviewType, session.language);
+            geminiRequestTime = Date.now();
+            firstAudioResponseTime = 0;
+            firstAudioSentForTurn = false;
+            turnInterrupted = false;
+            console.log(`[TALKWITH] Gemini request sent: opening prompt (session: ${sessionId.slice(-6)})`);
 
             geminiWs.send(JSON.stringify({
               clientContent: {
@@ -686,11 +776,11 @@ Return ONLY valid JSON matching this exact structure:
         } else if (msg.serverContent) {
           const content = msg.serverContent;
 
-          // User Barge-In / Interruption detected
+          // User Barge-In / Interruption detected from Gemini
           if (content.interrupted) {
-            console.log(`[LIVE] Barge-in / interruption detected for session: ${sessionId.slice(-6)}`);
+            console.log(`[TALKWITH] Gemini detected interruption for session: ${sessionId.slice(-6)}`);
+            turnInterrupted = true;
             firstAudioSentForTurn = false;
-            clientAudioChunkCount = 0;
             currentAiTurnText = '';
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify({ type: 'interrupted' }));
@@ -699,15 +789,21 @@ Return ONLY valid JSON matching this exact structure:
 
           // True Streaming Audio Chunks directly to browser
           if (content.modelTurn?.parts) {
+            if (turnInterrupted) {
+              // Discard any trailing audio chunks from interrupted turn
+              return;
+            }
+
             for (const part of content.modelTurn.parts) {
               if (part.inlineData?.data) {
                 if (!firstAudioSentForTurn) {
                   firstAudioSentForTurn = true;
-                  const latencyMs = lastClientAudioTime ? (Date.now() - lastClientAudioTime) : 0;
-                  console.log(`[LIVE] Gemini first audio chunk (session: ${sessionId.slice(-6)}, response latency: ${latencyMs}ms)`);
+                  firstAudioResponseTime = Date.now();
+                  const latencyMs = geminiRequestTime ? (firstAudioResponseTime - geminiRequestTime) : 0;
+                  console.log(`[TALKWITH] First AI audio: ${latencyMs}ms (session: ${sessionId.slice(-6)})`);
                 }
 
-                if (ws.readyState === WebSocket.OPEN) {
+                if (ws.readyState === WebSocket.OPEN && !turnInterrupted) {
                   ws.send(JSON.stringify({
                     type: 'audio',
                     mimeType: part.inlineData.mimeType || 'audio/pcm;rate=24000',
@@ -716,7 +812,7 @@ Return ONLY valid JSON matching this exact structure:
                   }));
                 }
               }
-              if (part.text) {
+              if (part.text && !turnInterrupted) {
                 currentAiTurnText += part.text;
                 if (ws.readyState === WebSocket.OPEN) {
                   ws.send(JSON.stringify({
@@ -730,8 +826,14 @@ Return ONLY valid JSON matching this exact structure:
 
           // Turn completion
           if (content.turnComplete) {
-            const turnDurationMs = lastClientAudioTime ? (Date.now() - lastClientAudioTime) : 0;
-            console.log(`[LIVE] turn complete (session: ${sessionId.slice(-6)}, total turn time: ${turnDurationMs}ms)`);
+            if (turnInterrupted) {
+              turnInterrupted = false;
+              return;
+            }
+
+            turnCompleteTime = Date.now();
+            const totalTurnTime = geminiRequestTime ? (turnCompleteTime - geminiRequestTime) : 0;
+            console.log(`[TALKWITH] Turn complete: ${totalTurnTime}ms (session: ${sessionId.slice(-6)})`);
             
             if (currentAiTurnText.trim()) {
               session.transcript.push({
@@ -743,7 +845,6 @@ Return ONLY valid JSON matching this exact structure:
             }
 
             firstAudioSentForTurn = false;
-            clientAudioChunkCount = 0;
             if (ws.readyState === WebSocket.OPEN) {
               ws.send(JSON.stringify({ type: 'turn_complete' }));
             }
@@ -758,15 +859,32 @@ Return ONLY valid JSON matching this exact structure:
       // Do not expose API key in error messages
       const sanitized = err.message ? err.message.replace(/key=[^&\s]+/gi, 'key=***') : 'Gemini connection error';
       console.error(`[TalkWithCoach] Gemini WebSocket error for ${sessionId}:`, sanitized);
+      let userMsg = 'Unable to connect to Gemini right now. Please try again.';
+      if (/quota|rate/i.test(sanitized)) {
+        userMsg = 'Gemini API quota or rate limit was reached. Please check your Gemini account.';
+      } else if (/key|auth|forbidden|unauthorized|permission/i.test(sanitized)) {
+        userMsg = 'Your Gemini API key appears to be invalid. Please check it in Settings.';
+      }
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'error', message: 'Coach service temporarily unavailable: ' + sanitized }));
+        ws.send(JSON.stringify({ type: 'error', message: userMsg }));
       }
     });
 
     geminiWs.on('close', (code, reason) => {
-      console.log(`[TalkWithCoach] Gemini WebSocket closed for ${sessionId} (${code})`);
+      const reasonStr = reason ? reason.toString() : '';
+      const sanitized = reasonStr.replace(/key=[^&\s]+/gi, 'key=***');
+      console.log(`[TalkWithCoach] Gemini WebSocket closed for ${sessionId} (${code}): ${sanitized}`);
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'gemini_closed', code }));
+        let userMsg = null;
+        if (code === 1007 || code === 1008 || code === 4000 || code === 4001 || /invalid|key|auth|permission/i.test(sanitized)) {
+          userMsg = 'Your Gemini API key appears to be invalid. Please check it in Settings.';
+        } else if (/quota|rate/i.test(sanitized)) {
+          userMsg = 'Gemini API quota or rate limit was reached. Please check your Gemini account.';
+        }
+        ws.send(JSON.stringify({ type: 'gemini_closed', code, message: userMsg }));
+        if (userMsg) {
+          ws.send(JSON.stringify({ type: 'error', message: userMsg }));
+        }
       }
     });
 
@@ -777,9 +895,16 @@ Return ONLY valid JSON matching this exact structure:
 
         if (msg.type === 'user_turn' && isGeminiReady && geminiWs?.readyState === WebSocket.OPEN) {
           // User confirmed their transcript!
-          lastClientAudioTime = Date.now();
+          speechStartTime = msg.speechStartTime || 0;
+          speechEndTime = msg.speechEndTime || Date.now();
+          geminiRequestTime = Date.now();
+          firstAudioResponseTime = 0;
           firstAudioSentForTurn = false;
-          console.log(`[TalkWithCoach] User confirmed turn (${sessionId.slice(-6)}): "${msg.text}"`);
+          turnInterrupted = false;
+
+          const speechDuration = speechStartTime ? (speechEndTime - speechStartTime) : 0;
+          console.log(`[TALKWITH] Speech ended: duration ${speechDuration}ms (session: ${sessionId.slice(-6)})`);
+          console.log(`[TALKWITH] Gemini request sent: user turn "${msg.text}"`);
 
           session.transcript.push({
             sender: 'user',
@@ -799,23 +924,9 @@ Return ONLY valid JSON matching this exact structure:
               turnComplete: true
             }
           }));
-        } else if (msg.type === 'audio_pcm' && isGeminiReady && geminiWs?.readyState === WebSocket.OPEN) {
-          lastClientAudioTime = Date.now();
-          clientAudioChunkCount++;
-
-          if (clientAudioChunkCount === 1) {
-            console.log(`[LIVE] audio chunk received from client (session: ${sessionId.slice(-6)})`);
-          }
-
-          // Forward real-time 16kHz PCM audio chunk to Gemini
-          geminiWs.send(JSON.stringify({
-            realtimeInput: {
-              audio: {
-                data: msg.pcm,
-                mimeType: 'audio/pcm;rate=16000'
-              }
-            }
-          }));
+        } else if (msg.type === 'audio_pcm') {
+          // In the user-confirmation flow, raw audio chunks are handled locally / via transcribe endpoint
+          // Suppress automatic realtimeInput to Gemini to prevent double turns or answering before confirmation!
         } else if (msg.type === 'transcript_update') {
           // Store dialogue line into session history
           if (msg.sender && msg.text) {
@@ -825,10 +936,10 @@ Return ONLY valid JSON matching this exact structure:
               timestamp: Date.now()
             });
           }
-        } else if (msg.type === 'interrupt' && isGeminiReady && geminiWs?.readyState === WebSocket.OPEN) {
-          console.log(`[LIVE] Client signaled explicit barge-in for session: ${sessionId.slice(-6)}`);
+        } else if (msg.type === 'interrupt') {
+          console.log(`[TALKWITH] Barge-in signaled by client for session: ${sessionId.slice(-6)}`);
+          turnInterrupted = true;
           firstAudioSentForTurn = false;
-          clientAudioChunkCount = 0;
           currentAiTurnText = '';
         }
       } catch (err) {
@@ -843,6 +954,9 @@ Return ONLY valid JSON matching this exact structure:
           geminiWs.close();
         }
       } catch (e) {}
+      if (session) {
+        delete session.apiKey;
+      }
     });
   });
 

@@ -17,13 +17,18 @@ class EchoraLiveInterview {
     this.scriptProcessor = null;
     this.analyser = null;
     
-    // Audio Playback Queue & Jitter Smoothing
+    // Audio Playback Queue & Continuous Cursor Scheduling
+    this.playbackCursor = 0;
     this.nextPlayTime = 0;
     this.activeAudioSources = [];
     this.isMuted = false;
     this.interrupted = false;
     this.firstChunkPlayedInTurn = false;
     
+    // Latency & Speech Timestamps
+    this.speechStartTime = 0;
+    this.speechEndTime = 0;
+
     // Audio Chunk Accumulator (~100ms chunks at 16kHz = 1600 samples)
     this.pcmAccumulator = [];
     this.pcmAccumulatorSamples = 0;
@@ -78,7 +83,10 @@ class EchoraLiveInterview {
         // Strictly ignore any results if not actively in listening state
         if (this.state !== 'listening') return;
 
-        this.userSpeaking = true;
+        if (!this.userSpeaking) {
+          this.userSpeaking = true;
+          this.speechStartTime = Date.now();
+        }
         this.lastUserVoiceTime = Date.now();
 
         let finalChunk = '';
@@ -137,10 +145,17 @@ class EchoraLiveInterview {
   // Start fresh listening cycle for user's turn
   startTurnListening() {
     this.userSpeaking = false;
+    this.speechStartTime = 0;
+    this.speechEndTime = 0;
     this.pendingUserTranscript = '';
     this.currentUserUtterance = '';
     this.lastConfirmedCandidateText = '';
     this.turnAudioChunks = [];
+    this.firstChunkPlayedInTurn = false;
+    if (this.outputAudioContext) {
+      this.playbackCursor = this.outputAudioContext.currentTime;
+      this.nextPlayTime = this.outputAudioContext.currentTime;
+    }
     if (this.silenceTimer) {
       clearTimeout(this.silenceTimer);
       this.silenceTimer = null;
@@ -216,6 +231,9 @@ class EchoraLiveInterview {
       clearTimeout(this.silenceTimer);
       this.silenceTimer = null;
     }
+    if (!this.speechEndTime) {
+      this.speechEndTime = Date.now();
+    }
     this.userSpeaking = false;
     this.speechRecognitionActive = false;
 
@@ -250,14 +268,20 @@ class EchoraLiveInterview {
             reader.readAsDataURL(audioBlob);
           });
 
-          if (base64Data) {
-            const res = await fetch('/api/live-interview/transcribe', {
+            const apiKey = window.EchoraBYOK?.getKey() || '';
+            const apiBase = window.ECHORA_CONFIG?.API_BASE_URL || '';
+            const headers = { 'Content-Type': 'application/json' };
+            if (apiKey) {
+              headers['x-gemini-api-key'] = apiKey;
+            }
+            const res = await fetch(`${apiBase}/api/live-interview/transcribe`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers,
               body: JSON.stringify({
                 audioData: base64Data,
                 mimeType: this.turnMediaRecorderMime || 'audio/webm',
-                language: this.config?.language || 'id'
+                language: this.config?.language || 'id',
+                sessionId: this.sessionId
               })
             });
 
@@ -267,7 +291,6 @@ class EchoraLiveInterview {
                 textToConfirm = data.transcript.trim();
               }
             }
-          }
         } catch (err) {
           console.warn('[TalkWithCoach] High-accuracy audio transcribe warning:', err);
         }
@@ -313,7 +336,9 @@ class EchoraLiveInterview {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({
         type: 'user_turn',
-        text: text
+        text: text,
+        speechStartTime: this.speechStartTime || 0,
+        speechEndTime: this.speechEndTime || Date.now()
       }));
     }
   }
@@ -341,6 +366,9 @@ class EchoraLiveInterview {
   // Manually signal done speaking (e.g. "Done Speaking" button)
   doneSpeaking() {
     if (this.state === 'listening') {
+      if (!this.speechEndTime) {
+        this.speechEndTime = Date.now();
+      }
       this.enterConfirmationState();
     }
   }
@@ -408,28 +436,41 @@ class EchoraLiveInterview {
       await this.outputAudioContext.resume();
     }
 
+    this.playbackCursor = this.outputAudioContext.currentTime;
     this.nextPlayTime = this.outputAudioContext.currentTime;
     this.firstChunkPlayedInTurn = false;
 
     // 3. Create Session via Backend REST API
     try {
-      const res = await fetch('/api/live-interview/session', {
+      const apiKey = window.EchoraBYOK?.getKey() || '';
+      const apiBase = window.ECHORA_CONFIG?.API_BASE_URL || '';
+      const headers = { 'Content-Type': 'application/json' };
+      if (apiKey) {
+        headers['x-gemini-api-key'] = apiKey;
+      }
+      const res = await fetch(`${apiBase}/api/live-interview/session`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config)
+        headers,
+        body: JSON.stringify({ ...config })
       });
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || `Server responded with status ${res.status}`);
+        throw new Error(errJson.message || errJson.error || `Server responded with status ${res.status}`);
       }
 
       const sessionData = await res.json();
       this.sessionId = sessionData.sessionId;
 
-      // 4. Connect WebSocket
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}${sessionData.wsEndpoint}?sessionId=${this.sessionId}`;
+      // 4. Connect WebSocket with flexible configuration (supports external WebSocket server in production)
+      const defaultWsBase = (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host;
+      const wsBase = window.ECHORA_CONFIG?.WS_URL || defaultWsBase;
+      const endpoint = sessionData.wsEndpoint || '/api/live-interview/ws';
+      const sep = wsBase.endsWith('/') ? '' : '/';
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+      const baseWsUrl = wsBase.includes('/api/live-interview/ws') ? wsBase : `${wsBase}${sep}${cleanEndpoint}`;
+      const wsUrl = `${baseWsUrl}${baseWsUrl.includes('?') ? '&' : '?'}sessionId=${this.sessionId}`;
+
       this.connectWebSocket(wsUrl);
 
       // 5. Start audio processing and speech recognition
@@ -460,6 +501,9 @@ class EchoraLiveInterview {
         if (msg.type === 'ready') {
           console.log('[TalkWithCoach] AI Coach session is ready, preparing topic question...');
           this.setState('thinking');
+        } else if (msg.type === 'interrupted') {
+          console.log('[TalkWithCoach] Interruption confirmed by server');
+          this.handleBargeIn(false);
         } else if (msg.type === 'audio') {
           // Streaming PCM chunk from Gemini Live
           if (this.state !== 'speaking') {
@@ -482,8 +526,8 @@ class EchoraLiveInterview {
             this.currentAiUtterance = '';
           }
           // Turn finished upstream. Wait until queued audio buffer finishes before transitioning to listening
-          const remainingPlayMs = (this.outputAudioContext && this.nextPlayTime > this.outputAudioContext.currentTime)
-            ? Math.round((this.nextPlayTime - this.outputAudioContext.currentTime) * 1000)
+          const remainingPlayMs = (this.outputAudioContext && this.playbackCursor > this.outputAudioContext.currentTime)
+            ? Math.round((this.playbackCursor - this.outputAudioContext.currentTime) * 1000)
             : 0;
 
           setTimeout(() => {
@@ -501,7 +545,13 @@ class EchoraLiveInterview {
               this.startTurnListening();
             }
             this.onTurnComplete();
-          }, remainingPlayMs + 120);
+        } else if (msg.type === 'gemini_closed') {
+          console.warn('[TalkWithCoach] Gemini connection closed by upstream:', msg.code, msg.message);
+          if (this.state !== 'ended') {
+            this.setState('error');
+            const errorMsg = msg.message || 'Your Gemini API key appears to be invalid. Please check it in Settings.';
+            this.onError(errorMsg);
+          }
         } else if (msg.type === 'error') {
           console.error('[TalkWithCoach] Server error:', msg.message);
           this.setState('error');
@@ -567,11 +617,20 @@ class EchoraLiveInterview {
         this.onVolumeChange(rms, 'user');
       }
 
-      // 2. User Voice Activity & Silence Detection strictly in 'listening' state
-      if (this.state === 'listening') {
+      // 2. User Voice Activity & Silence / Interruption Detection
+      if (this.state === 'speaking') {
+        // Voice activity detected while AI is speaking -> Instant Barge-in (interruption)
+        if (rms > this.userSpeakingThreshold * 1.6) {
+          console.log('[TalkWithCoach] User voice detected while AI speaking -> Barge-in triggered');
+          this.handleBargeIn(true);
+        }
+      } else if (this.state === 'listening') {
         if (rms > this.userSpeakingThreshold) {
+          if (!this.userSpeaking) {
+            this.userSpeaking = true;
+            this.speechStartTime = Date.now();
+          }
           this.lastUserVoiceTime = Date.now();
-          this.userSpeaking = true;
           if (this.silenceTimer) {
             clearTimeout(this.silenceTimer);
             this.silenceTimer = null;
@@ -580,6 +639,7 @@ class EchoraLiveInterview {
           // User finished speaking phrase; trigger confirmation modal after 2.8s of silence
           this.silenceTimer = setTimeout(() => {
             if (this.state === 'listening' && this.userSpeaking) {
+              this.speechEndTime = Date.now();
               this.enterConfirmationState();
             }
           }, 2800);
@@ -634,7 +694,7 @@ class EchoraLiveInterview {
     return window.btoa(binary);
   }
 
-  // Play incoming 24kHz 16-bit PCM chunk smoothly with zero-jitter Web Audio scheduling
+  // Play incoming 24kHz 16-bit PCM chunk smoothly with zero-jitter continuous Web Audio scheduling
   playPcmChunk(base64Pcm, mimeType, serverTimestamp) {
     if (this.interrupted || !this.outputAudioContext) return;
 
@@ -667,23 +727,25 @@ class EchoraLiveInterview {
 
       const currentTime = this.outputAudioContext.currentTime;
 
-      // Jitter buffer logic:
-      // If nextPlayTime is in the past, or first chunk of turn, anchor with a tiny 40ms cushion
-      // For all subsequent chunks, schedule back-to-back with zero artificial gaps!
+      // Continuous playback cursor scheduling:
+      // When starting a new turn, buffer 35ms ahead to absorb initial network jitter.
+      // If cursor is in the past (underrun during streaming), reschedule smoothly with 8ms cushion.
       let scheduledTime;
-      if (this.nextPlayTime <= currentTime) {
-        scheduledTime = currentTime + 0.04;
+      if (!this.firstChunkPlayedInTurn || this.playbackCursor <= currentTime) {
+        const cushion = this.firstChunkPlayedInTurn ? 0.008 : 0.035;
+        scheduledTime = currentTime + cushion;
         if (!this.firstChunkPlayedInTurn) {
           this.firstChunkPlayedInTurn = true;
           const playbackLatency = serverTimestamp ? (Date.now() - serverTimestamp) : 0;
-          console.log(`[LIVE] browser playback started (buffer delay: ${playbackLatency}ms)`);
+          console.log(`[LIVE] Browser playback started (initial buffer latency: ${playbackLatency}ms)`);
         }
       } else {
-        scheduledTime = this.nextPlayTime;
+        scheduledTime = this.playbackCursor;
       }
 
       source.start(scheduledTime);
-      this.nextPlayTime = scheduledTime + audioBuffer.duration;
+      this.playbackCursor = scheduledTime + audioBuffer.duration;
+      this.nextPlayTime = this.playbackCursor;
 
       // Track active source for instant barge-in cancellation
       this.activeAudioSources.push(source);
@@ -710,7 +772,7 @@ class EchoraLiveInterview {
   }
 
   // Handle Barge-In / Interruption (Immediately cut off AI speech)
-  handleBargeIn() {
+  handleBargeIn(notifyServer = true) {
     this.interrupted = true;
     this.firstChunkPlayedInTurn = false;
 
@@ -725,6 +787,7 @@ class EchoraLiveInterview {
 
     // 2. Reset scheduling clock
     if (this.outputAudioContext) {
+      this.playbackCursor = this.outputAudioContext.currentTime;
       this.nextPlayTime = this.outputAudioContext.currentTime;
     }
 
@@ -741,10 +804,13 @@ class EchoraLiveInterview {
       this.currentAiUtterance = '';
     }
 
-    // 6. Notify backend of barge-in
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+    // 6. Notify backend of barge-in if initiated locally
+    if (notifyServer && this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify({ type: 'interrupt' }));
     }
+
+    // Start fresh listening for user speech
+    this.startTurnListening();
 
     // Reset interruption flag after a short grace period
     setTimeout(() => {
@@ -791,9 +857,15 @@ class EchoraLiveInterview {
 
     // Call End Session API for feedback analysis
     try {
-      const res = await fetch('/api/live-interview/end', {
+      const apiKey = window.EchoraBYOK?.getKey() || '';
+      const apiBase = window.ECHORA_CONFIG?.API_BASE_URL || '';
+      const headers = { 'Content-Type': 'application/json' };
+      if (apiKey) {
+        headers['x-gemini-api-key'] = apiKey;
+      }
+      const res = await fetch(`${apiBase}/api/live-interview/end`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           sessionId: this.sessionId,
           duration: durationSeconds,

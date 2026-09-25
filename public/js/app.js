@@ -165,13 +165,33 @@ document.addEventListener('DOMContentLoaded', () => {
     modalToImproveList: document.getElementById('modal-to-improve-list'),
     modalNextStepText: document.getElementById('modal-next-step-text'),
 
-    // Profile Modal
+    // Profile / Settings Modal & BYOK
     modalProfile: document.getElementById('modal-profile'),
     btnCloseProfileModal: document.getElementById('btn-close-profile-modal'),
     profileStatSessions: document.getElementById('profile-stat-sessions'),
     profileStatTime: document.getElementById('profile-stat-time'),
     profileForm: document.getElementById('profile-form'),
     profileNameInput: document.getElementById('profile-name-input'),
+
+    // BYOK Elements
+    byokSettingsSection: document.getElementById('byok-settings-section'),
+    byokSavedView: document.getElementById('byok-saved-view'),
+    byokEditView: document.getElementById('byok-edit-view'),
+    byokKeyMasked: document.getElementById('byok-key-masked'),
+    byokKeyPlaintextBox: document.getElementById('byok-key-plaintext-box'),
+    byokInputKey: document.getElementById('byok-input-key'),
+    btnByokToggleShow: document.getElementById('btn-byok-toggle-show'),
+    btnByokReplace: document.getElementById('btn-byok-replace'),
+    btnByokRemove: document.getElementById('btn-byok-remove'),
+    btnByokTestSaved: document.getElementById('btn-byok-test-saved'),
+    btnByokSaveKey: document.getElementById('btn-byok-save-key'),
+    btnByokTestInput: document.getElementById('btn-byok-test-input'),
+    btnByokCancelEdit: document.getElementById('btn-byok-cancel-edit'),
+    btnByokInputToggleVis: document.getElementById('btn-byok-input-toggle-vis'),
+    byokSavedStatus: document.getElementById('byok-saved-status'),
+    byokSavedStatusText: document.getElementById('byok-saved-status-text'),
+    byokEditStatus: document.getElementById('byok-edit-status'),
+    byokEditStatusText: document.getElementById('byok-edit-status-text'),
 
     // Toast
     toast: document.getElementById('toast-msg'),
@@ -226,6 +246,98 @@ document.addEventListener('DOMContentLoaded', () => {
     btnLiveBackDashboard: document.getElementById('btn-live-back-dashboard')
   };
 
+  // ==========================================================================
+  // ECHORA BYOK (Bring Your Own Key) Controller
+  // ==========================================================================
+  const EchoraBYOK = {
+    STORAGE_KEY: 'echora_gemini_api_key',
+
+    getKey() {
+      try {
+        return (localStorage.getItem(this.STORAGE_KEY) || '').trim();
+      } catch (e) {
+        return '';
+      }
+    },
+
+    setKey(key) {
+      try {
+        if (!key || !key.trim()) {
+          this.removeKey();
+          return;
+        }
+        localStorage.setItem(this.STORAGE_KEY, key.trim());
+      } catch (e) {
+        console.warn('[BYOK] Could not write to localStorage:', e);
+      }
+    },
+
+    removeKey() {
+      try {
+        localStorage.removeItem(this.STORAGE_KEY);
+      } catch (e) {}
+    },
+
+    hasKey() {
+      const k = this.getKey();
+      return Boolean(k && k.length >= 10);
+    },
+
+    async testKey(keyToTest) {
+      const key = (keyToTest || this.getKey()).trim();
+      if (!key || key.length < 10) {
+        return { success: false, message: t('keyInvalid') };
+      }
+      try {
+        const apiBase = window.ECHORA_CONFIG?.API_BASE_URL || '';
+        const res = await fetch(`${apiBase}/api/ai/test-key`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-gemini-api-key': key
+          },
+          body: JSON.stringify({})
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          return { success: true, message: t('keyConnected') };
+        } else if (res.status === 429 || data.error === 'QUOTA_EXCEEDED') {
+          return { success: false, message: t('keyErrorQuota') };
+        } else {
+          return { success: false, message: t('keyInvalid') };
+        }
+      } catch (err) {
+        return { success: false, message: t('keyErrorNetwork') };
+      }
+    }
+  };
+
+  window.EchoraBYOK = EchoraBYOK;
+
+  function renderByokUi() {
+    if (!dom.byokSettingsSection) return;
+
+    const hasKey = EchoraBYOK.hasKey();
+
+    if (hasKey) {
+      dom.byokSavedView.style.display = 'block';
+      dom.byokEditView.style.display = 'none';
+      dom.byokKeyMasked.textContent = '••••••••••••••••••••';
+      dom.byokKeyPlaintextBox.style.display = 'none';
+      dom.byokKeyPlaintextBox.textContent = '';
+      dom.btnByokToggleShow.textContent = t('showKeyBtn');
+      dom.byokSavedStatus.className = 'byok-status-indicator connected';
+      dom.byokSavedStatusText.textContent = t('keyConnected');
+    } else {
+      dom.byokSavedView.style.display = 'none';
+      dom.byokEditView.style.display = 'block';
+      dom.byokInputKey.value = '';
+      dom.byokInputKey.type = 'password';
+      dom.btnByokCancelEdit.style.display = 'none';
+      dom.byokEditStatus.style.display = 'none';
+    }
+  }
+
   // --------------------------------------------------------------------------
   // Language & Localization System
   // --------------------------------------------------------------------------
@@ -254,6 +366,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      if (translations[lang][key]) {
+        el.placeholder = translations[lang][key];
+      }
+    });
+
     // Update topic text if loaded
     if (state.currentTopic) {
       renderTopic(state.currentTopic);
@@ -262,6 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Re-render recent sessions & history to refresh date formats
     renderRecentSessions();
     renderHistorySessions();
+    renderByokUi();
   }
 
   function t(key) {
@@ -679,7 +799,8 @@ document.addEventListener('DOMContentLoaded', () => {
       (err) => {
         alert(t('micErrorMsg'));
         switchView('dashboard');
-      }
+      },
+      state.currentLang
     );
 
     if (!started) {
@@ -700,6 +821,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       state.postRecordPlayer.load(recordingData.url);
     }
+
+    if (recordingData.hasSpeech === false) {
+      showToast(t('noSpeechDetected'), 5000);
+    }
   }
 
   // --------------------------------------------------------------------------
@@ -707,6 +832,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // --------------------------------------------------------------------------
   async function sendRecordingForAnalysis() {
     if (!state.currentRecording || !state.currentTopic) return;
+
+    if (state.currentRecording.hasSpeech === false) {
+      showToast(t('noSpeechDetected'), 5000);
+      switchView('postRecord');
+      return;
+    }
+
+    // BYOK Guard: User must have configured a Gemini API key
+    if (!window.EchoraBYOK?.hasKey()) {
+      showToast(t('apiKeyRequiredNotice'), 5000);
+      renderByokUi();
+      openModal(dom.modalProfile);
+      return;
+    }
 
     switchView('analyzing');
 
@@ -727,6 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2200);
 
     try {
+      const userApiKey = window.EchoraBYOK.getKey();
       const formData = new FormData();
       const filename = `speech-${Date.now()}.${state.currentRecording.mimeType.includes('mp4') ? 'mp4' : 'webm'}`;
       formData.append('audio', state.currentRecording.blob, filename);
@@ -741,19 +881,57 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.append('speakingDuration', state.selectedSpeakingDuration);
       formData.append('duration', state.currentRecording.duration);
       formData.append('language', state.currentLang);
+      formData.append('transcript', state.currentRecording.transcript || '');
+      formData.append('hasSpeech', state.currentRecording.hasSpeech ? 'true' : 'false');
 
       const res = await fetch('/api/sessions/analyze', {
         method: 'POST',
+        headers: {
+          'x-gemini-api-key': userApiKey
+        },
         body: formData
       });
 
       clearInterval(progressInterval);
 
       if (!res.ok) {
-        throw new Error('Analysis request failed');
+        const errorData = await res.json().catch(() => ({}));
+        if (errorData.error === 'API_KEY_REQUIRED' || res.status === 400 && errorData.error === 'API_KEY_REQUIRED') {
+          showToast(t('keyErrorNoKey'), 5000);
+          renderByokUi();
+          openModal(dom.modalProfile);
+          switchView('postRecord');
+          return;
+        }
+        if (errorData.error === 'INVALID_API_KEY' || res.status === 401) {
+          showToast(t('keyErrorInvalid'), 5000);
+          renderByokUi();
+          openModal(dom.modalProfile);
+          switchView('postRecord');
+          return;
+        }
+        if (errorData.error === 'QUOTA_EXCEEDED' || res.status === 429) {
+          showToast(t('keyErrorQuota'), 5000);
+          switchView('postRecord');
+          return;
+        }
+        if (errorData.error === 'NO_SPEECH_DETECTED') {
+          showToast(t('noSpeechDetected'), 5000);
+          switchView('postRecord');
+          return;
+        }
+        showToast(errorData.message || t('keyErrorNetwork'), 5000);
+        switchView('postRecord');
+        return;
       }
 
       const analyzedSession = await res.json();
+      if (analyzedSession.error === 'NO_SPEECH_DETECTED' || analyzedSession.success === false) {
+        showToast(t('noSpeechDetected'), 5000);
+        switchView('postRecord');
+        return;
+      }
+
       state.lastAnalysisResult = analyzedSession;
       state.sessions.unshift(analyzedSession);
       fetchProfile();
@@ -764,7 +942,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       clearInterval(progressInterval);
       console.error('AI analysis error:', err);
-      alert('Unable to analyze recording. Please try again.');
+      showToast(t('keyErrorNetwork'), 5000);
       switchView('postRecord');
     }
   }
@@ -1008,6 +1186,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Voice Preview Player
   async function playVoicePreview(voice, lang, btn) {
+    if (!window.EchoraBYOK?.hasKey()) {
+      showToast(t('apiKeyRequiredPreview'), 5000);
+      renderByokUi();
+      openModal(dom.modalProfile);
+      return;
+    }
+
     if (state.activePreviewAudio) {
       try {
         state.activePreviewAudio.pause();
@@ -1025,9 +1210,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (label) label.textContent = t('livePlayingPreview');
 
     try {
-      const res = await fetch('/api/live-interview/preview-voice', {
+      const userApiKey = window.EchoraBYOK.getKey();
+      const apiBase = window.ECHORA_CONFIG?.API_BASE_URL || '';
+      const res = await fetch(`${apiBase}/api/live-interview/preview-voice`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-gemini-api-key': userApiKey
+        },
         body: JSON.stringify({ voice, language: lang })
       });
       if (!res.ok) throw new Error('Preview request failed');
@@ -1104,6 +1294,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Start Live Interview / TalkWith Coach Real-Time Session Flow
   async function startLiveInterviewFlow() {
+    // BYOK Guard: User must have configured a Gemini API key
+    if (!window.EchoraBYOK?.hasKey()) {
+      showToast(t('apiKeyRequiredTalkWith'), 5000);
+      renderByokUi();
+      openModal(dom.modalProfile);
+      return;
+    }
+
     const lang = state.liveConfig.language;
     const voice = state.liveConfig.voice || 'Puck';
 
@@ -1601,9 +1799,10 @@ document.addEventListener('DOMContentLoaded', () => {
     dom.langBtnEn.addEventListener('click', () => setLanguage('en'));
     dom.langBtnId.addEventListener('click', () => setLanguage('id'));
 
-    // Profile modal
+    // Profile / Settings modal
     dom.navProfile.addEventListener('click', () => {
       fetchProfile();
+      renderByokUi();
       openModal(dom.modalProfile);
     });
     dom.btnCloseProfileModal.addEventListener('click', () => closeModal(dom.modalProfile));
@@ -1614,6 +1813,116 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       saveProfileName(dom.profileNameInput.value);
     });
+
+    // BYOK Settings Actions
+    if (dom.btnByokToggleShow) {
+      dom.btnByokToggleShow.addEventListener('click', () => {
+        const isVisible = dom.byokKeyPlaintextBox.style.display === 'block';
+        if (isVisible) {
+          dom.byokKeyPlaintextBox.style.display = 'none';
+          dom.byokKeyPlaintextBox.textContent = '';
+          dom.btnByokToggleShow.textContent = t('showKeyBtn');
+        } else {
+          dom.byokKeyPlaintextBox.textContent = EchoraBYOK.getKey();
+          dom.byokKeyPlaintextBox.style.display = 'block';
+          dom.btnByokToggleShow.textContent = t('hideKeyBtn');
+        }
+      });
+    }
+
+    if (dom.btnByokReplace) {
+      dom.btnByokReplace.addEventListener('click', () => {
+        dom.byokSavedView.style.display = 'none';
+        dom.byokEditView.style.display = 'block';
+        dom.byokInputKey.value = '';
+        dom.byokInputKey.type = 'password';
+        dom.btnByokCancelEdit.style.display = 'inline-flex';
+        dom.byokEditStatus.style.display = 'none';
+        dom.byokInputKey.focus();
+      });
+    }
+
+    if (dom.btnByokCancelEdit) {
+      dom.btnByokCancelEdit.addEventListener('click', () => {
+        renderByokUi();
+      });
+    }
+
+    if (dom.btnByokRemove) {
+      dom.btnByokRemove.addEventListener('click', () => {
+        EchoraBYOK.removeKey();
+        showToast(t('keyRemoved'));
+        renderByokUi();
+      });
+    }
+
+    if (dom.btnByokInputToggleVis) {
+      dom.btnByokInputToggleVis.addEventListener('click', () => {
+        dom.byokInputKey.type = dom.byokInputKey.type === 'password' ? 'text' : 'password';
+      });
+    }
+
+    if (dom.btnByokSaveKey) {
+      dom.btnByokSaveKey.addEventListener('click', () => {
+        const key = dom.byokInputKey.value.trim();
+        if (!key || key.length < 10) {
+          dom.byokEditStatus.style.display = 'flex';
+          dom.byokEditStatus.className = 'byok-status-indicator disconnected';
+          dom.byokEditStatusText.textContent = t('keyInvalid');
+          return;
+        }
+        EchoraBYOK.setKey(key);
+        showToast(t('keySaved'));
+        renderByokUi();
+      });
+    }
+
+    if (dom.btnByokTestInput) {
+      dom.btnByokTestInput.addEventListener('click', async () => {
+        const key = dom.byokInputKey.value.trim();
+        if (!key || key.length < 10) {
+          dom.byokEditStatus.style.display = 'flex';
+          dom.byokEditStatus.className = 'byok-status-indicator disconnected';
+          dom.byokEditStatusText.textContent = t('keyInvalid');
+          return;
+        }
+
+        dom.btnByokTestInput.disabled = true;
+        dom.byokEditStatus.style.display = 'flex';
+        dom.byokEditStatus.className = 'byok-status-indicator testing';
+        dom.byokEditStatusText.textContent = t('testingConnection');
+
+        const result = await EchoraBYOK.testKey(key);
+        dom.btnByokTestInput.disabled = false;
+
+        if (result.success) {
+          dom.byokEditStatus.className = 'byok-status-indicator connected';
+          dom.byokEditStatusText.textContent = result.message;
+        } else {
+          dom.byokEditStatus.className = 'byok-status-indicator disconnected';
+          dom.byokEditStatusText.textContent = result.message;
+        }
+      });
+    }
+
+    if (dom.btnByokTestSaved) {
+      dom.btnByokTestSaved.addEventListener('click', async () => {
+        dom.btnByokTestSaved.disabled = true;
+        dom.byokSavedStatus.className = 'byok-status-indicator testing';
+        dom.byokSavedStatusText.textContent = t('testingConnection');
+
+        const result = await EchoraBYOK.testKey(EchoraBYOK.getKey());
+        dom.btnByokTestSaved.disabled = false;
+
+        if (result.success) {
+          dom.byokSavedStatus.className = 'byok-status-indicator connected';
+          dom.byokSavedStatusText.textContent = result.message;
+        } else {
+          dom.byokSavedStatus.className = 'byok-status-indicator disconnected';
+          dom.byokSavedStatusText.textContent = result.message;
+        }
+      });
+    }
 
     // Analysis detail modal
     dom.btnCloseAnalysisModal.addEventListener('click', () => closeModal(dom.modalAnalysis));
@@ -1757,6 +2066,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     dom.btnAnalyzeAi.addEventListener('click', () => {
       if (state.postRecordPlayer) state.postRecordPlayer.pause();
+      if (state.currentRecording && state.currentRecording.hasSpeech === false) {
+        showToast(t('noSpeechDetected'), 5000);
+        return;
+      }
       sendRecordingForAnalysis();
     });
 

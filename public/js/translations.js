@@ -63,6 +63,7 @@ const translations = {
     pauseRecordingBtn: "Pause",
     recordAgainBtn: "Record Again",
     analyzeWithAiBtn: "Analyze with AI",
+    noSpeechDetected: "No speech detected. Try speaking for a few seconds and record again.",
     
     // AI Analysis Loading
     aiAnalyzingTitle: "AI Coach is Analyzing Your Voice",
@@ -95,8 +96,9 @@ const translations = {
     deleteSessionBtn: "Delete",
     confirmDelete: "Are you sure you want to delete this session?",
     
-    // Profile
-    profileTitle: "Profile",
+    // Profile & Settings
+    navSettings: "Settings",
+    profileTitle: "Settings & Profile",
     profileRole: "Public Speaking Learner",
     displayNameLabel: "Display Name",
     saveNameBtn: "Save Changes",
@@ -104,6 +106,40 @@ const translations = {
     totalSpeakingTimeLabel: "Total Speaking Time",
     closeBtn: "Close",
     savedNotice: "Profile saved successfully.",
+
+    // AI Provider (BYOK)
+    aiProviderTitle: "AI Provider",
+    aiProviderSubtitle: "Bring your own Google Gemini API key to power AI feedback & coaching.",
+    providerLabel: "Provider",
+    apiKeyLabel: "Gemini API Key",
+    apiKeyPlaceholder: "Enter your Gemini API key",
+    apiKeyHint: "Get your free Gemini API key from Google AI Studio",
+    showKeyBtn: "Show",
+    hideKeyBtn: "Hide",
+    replaceKeyBtn: "Replace",
+    removeKeyBtn: "Remove / Clear Key",
+    testConnectionBtn: "Test Connection",
+    saveKeyBtn: "Save / Apply",
+    cancelBtn: "Cancel",
+    testingConnection: "Testing connection...",
+    keyConnected: "Gemini connection successful",
+    keyInvalid: "Invalid Gemini API key",
+    keySaved: "Gemini API key saved.",
+    keySavedToast: "Gemini API key saved.",
+    keyRemoved: "Gemini API key removed.",
+    keyRemovedToast: "Gemini API key removed.",
+    apiKeyRequiredNotice: "Please add your Gemini API key in Settings before using AI features.",
+    apiKeyRequiredTalkWith: "Please add your Gemini API key in Settings before using AI features.",
+    apiKeyRequiredPreview: "Please add your Gemini API key in Settings before using AI features.",
+    keyErrorNoKey: "Gemini API key is not configured.\nPlease add your API key in Settings.",
+    keyErrorInvalid: "Your Gemini API key appears to be invalid.\nPlease check it in Settings.",
+    keyErrorQuota: "Gemini API quota or rate limit was reached.\nPlease check your Gemini account.",
+    keyErrorNetwork: "Unable to connect to Gemini right now.\nPlease try again.",
+    liveSessionError: "Could not connect to Gemini Live service. Please check your API key in Settings.",
+    statusNotConfigured: "Not configured",
+    statusConnected: "Connected",
+    statusTesting: "Testing...",
+    openSettingsBtn: "Open Settings",
     
     // Generic
     secondsShort: "s",
@@ -237,6 +273,7 @@ const translations = {
     pauseRecordingBtn: "Jeda",
     recordAgainBtn: "Rekam Ulang",
     analyzeWithAiBtn: "Analisis dengan AI",
+    noSpeechDetected: "Tidak ada suara terdeteksi. Coba bicara beberapa detik dan rekam ulang.",
     
     // AI Analysis Loading
     aiAnalyzingTitle: "Pelatih AI Sedang Menganalisis Suaramu",
@@ -269,8 +306,9 @@ const translations = {
     deleteSessionBtn: "Hapus",
     confirmDelete: "Apakah Anda yakin ingin menghapus sesi rekaman ini?",
     
-    // Profile
-    profileTitle: "Profil",
+    // Profile & Settings
+    navSettings: "Pengaturan",
+    profileTitle: "Pengaturan & Profil",
     profileRole: "Pelajar Public Speaking",
     displayNameLabel: "Nama Tampilan",
     saveNameBtn: "Simpan Perubahan",
@@ -278,6 +316,40 @@ const translations = {
     totalSpeakingTimeLabel: "Total Waktu Bicara",
     closeBtn: "Tutup",
     savedNotice: "Profil berhasil diperbarui.",
+
+    // AI Provider (BYOK)
+    aiProviderTitle: "AI Provider",
+    aiProviderSubtitle: "Gunakan API key Google Gemini milikmu untuk analisis bicara & coaching AI.",
+    providerLabel: "Provider",
+    apiKeyLabel: "Gemini API Key",
+    apiKeyPlaceholder: "Masukkan API key Gemini kamu",
+    apiKeyHint: "Dapatkan API key Gemini gratis dari Google AI Studio",
+    showKeyBtn: "Tampilkan",
+    hideKeyBtn: "Sembunyikan",
+    replaceKeyBtn: "Ganti",
+    removeKeyBtn: "Hapus / Clear Key",
+    testConnectionBtn: "Test Connection",
+    saveKeyBtn: "Save / Apply",
+    cancelBtn: "Batal",
+    testingConnection: "Menguji koneksi...",
+    keyConnected: "Gemini connection successful",
+    keyInvalid: "Invalid Gemini API key",
+    keySaved: "API key Gemini berhasil disimpan.",
+    keySavedToast: "API key Gemini berhasil disimpan.",
+    keyRemoved: "API key Gemini dihapus.",
+    keyRemovedToast: "API key Gemini dihapus.",
+    apiKeyRequiredNotice: "Please add your Gemini API key in Settings before using AI features.",
+    apiKeyRequiredTalkWith: "Please add your Gemini API key in Settings before using AI features.",
+    apiKeyRequiredPreview: "Please add your Gemini API key in Settings before using AI features.",
+    keyErrorNoKey: "Gemini API key is not configured.\nPlease add your API key in Settings.",
+    keyErrorInvalid: "Your Gemini API key appears to be invalid.\nPlease check it in Settings.",
+    keyErrorQuota: "Gemini API quota or rate limit was reached.\nPlease check your Gemini account.",
+    keyErrorNetwork: "Unable to connect to Gemini right now.\nPlease try again.",
+    liveSessionError: "Tidak dapat terhubung ke layanan Gemini Live. Silakan periksa API key kamu di Pengaturan.",
+    statusNotConfigured: "Belum dikonfigurasi",
+    statusConnected: "Connected",
+    statusTesting: "Menguji...",
+    openSettingsBtn: "Buka Pengaturan",
     
     // Generic
     secondsShort: "dtk",

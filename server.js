@@ -237,7 +237,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     environment: IS_VERCEL ? 'vercel-serverless' : 'localhost',
-    hasGeminiKey: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 5),
+    byok: true,
     timestamp: new Date().toISOString()
   });
 });
@@ -333,10 +333,9 @@ app.delete('/api/sessions/:id', (req, res) => {
 });
 
 // AI Coach Analysis Engine using Google Gemini
-async function analyzeWithGemini({ audioBuffer, mimeType, topic, category, duration, language }) {
-  const apiKey = process.env.GEMINI_API_KEY;
+async function analyzeWithGemini({ audioBuffer, mimeType, topic, category, duration, language, apiKey }) {
   if (!apiKey || apiKey.trim().length < 5) {
-    return null; // Fallback to heuristic coach
+    return { authError: true };
   }
 
   const base64Audio = audioBuffer.toString('base64');
@@ -370,6 +369,14 @@ EVALUATION RULES (AUDIO ONLY):
   4. Pace: Speaking tempo (steady rhythm, not rushed, not dragging).
   5. Expression: Intonation variance, dynamic vocal energy, avoiding monotone delivery.
 
+AUDIO VALIDATION & SILENCE DETECTION (CRITICAL):
+- If the audio contains NO speech, is completely silent, contains only background static/ambient noise, or has no discernible spoken words:
+  You MUST return ONLY valid JSON:
+  {
+    "noSpeechDetected": true
+  }
+- Do NOT generate scores or feedback for silent recordings.
+
 COACHING & FEEDBACK RULES:
 1. WHAT YOU DID WELL:
    - Provide only 2 to 3 most relevant points that genuinely stood out in this recording.
@@ -391,7 +398,7 @@ COACHING & FEEDBACK RULES:
 4. NEXT STEP:
    - Provide exactly 1 short, concrete, practical exercise (1-2 sentences) the student can try in their next practice.
 
-SCORING (Keep standard scoring system intact):
+SCORING (Keep standard scoring system intact for valid speech):
 - overallScore: integer between 60 and 96
 - scores: content, fluency, articulation, pace, expression (each integer between 60 and 98)
 
@@ -423,7 +430,7 @@ Return ONLY valid JSON with this exact schema:
 
   for (const model of models) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
       const payload = {
         contents: [
           {
@@ -446,13 +453,21 @@ Return ONLY valid JSON with this exact schema:
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
         body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
-        const errText = await response.text();
-        console.warn(`Gemini API error with model ${model}:`, response.status, errText);
+        console.warn(`[BYOK] Gemini API error with model ${model}:`, response.status);
+        if (response.status === 400 || response.status === 401 || response.status === 403) {
+          return { authError: true };
+        }
+        if (response.status === 429) {
+          return { quotaError: true };
+        }
         continue;
       }
 
@@ -463,22 +478,32 @@ Return ONLY valid JSON with this exact schema:
       const rawText = textPart?.text;
       if (rawText) {
         const cleaned = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
-        const parsed = JSON.parse(cleaned);
-        if (parsed.overallScore !== undefined && parsed.scores && parsed.feedback) {
-          if (typeof parsed.feedback.whatYouDidWell === 'string') {
-            parsed.feedback.whatYouDidWell = [parsed.feedback.whatYouDidWell];
+        try {
+          const parsed = JSON.parse(cleaned);
+          if (parsed.noSpeechDetected) {
+            return { noSpeechDetected: true };
           }
-          if (typeof parsed.feedback.whatToImprove === 'string') {
-            parsed.feedback.whatToImprove = [parsed.feedback.whatToImprove];
+          if (parsed.overallScore !== undefined && parsed.scores && parsed.feedback) {
+            if (typeof parsed.feedback.whatYouDidWell === 'string') {
+              parsed.feedback.whatYouDidWell = [parsed.feedback.whatYouDidWell];
+            }
+            if (typeof parsed.feedback.whatToImprove === 'string') {
+              parsed.feedback.whatToImprove = [parsed.feedback.whatToImprove];
+            }
+            return {
+              ...parsed,
+              engine: `Gemini AI (${model})`
+            };
           }
-          return {
-            ...parsed,
-            engine: `Gemini AI (${model})`
-          };
+        } catch (jsonErr) {
+          if (/no speech|silent|silence|empty/i.test(cleaned)) {
+            return { noSpeechDetected: true };
+          }
         }
       }
     } catch (err) {
-      console.warn(`Attempt with ${model} failed:`, err.message);
+      const safeMsg = err.message ? err.message.replace(/key=[^&]+/g, 'key=[REDACTED]') : 'Attempt failed';
+      console.warn(`[BYOK] Attempt with ${model} failed:`, safeMsg);
     }
   }
 
@@ -690,6 +715,78 @@ function generateIntelligentAnalysis({ topic, category, duration, language }) {
   };
 }
 
+// Helper to detect silent WAV buffer
+function isWavSilent(buffer) {
+  if (!buffer || buffer.length < 44) return true;
+  const dataIdx = buffer.indexOf('data');
+  if (dataIdx === -1) return false;
+  const start = dataIdx + 8;
+  let sum = 0;
+  let count = 0;
+  for (let i = start; i < buffer.length - 1; i += 2) {
+    const sample = buffer.readInt16LE(i) / 32768;
+    sum += sample * sample;
+    count++;
+  }
+  if (count === 0) return true;
+  const rms = Math.sqrt(sum / count);
+  return rms < 0.01;
+}
+
+// POST /api/ai/test-key (Validate user Gemini API key safely)
+app.post('/api/ai/test-key', async (req, res) => {
+  try {
+    const apiKey = (req.headers['x-gemini-api-key'] || '').trim();
+
+    if (!apiKey || apiKey.length < 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_FORMAT',
+        message: 'Invalid API key format. Please check your Gemini API key.'
+      });
+    }
+
+    // Safely verify with Gemini API (list 1 model to verify key authorization)
+    const testUrl = `https://generativelanguage.googleapis.com/v1beta/models?pageSize=1`;
+    const response = await fetch(testUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
+      }
+    });
+
+    if (response.ok) {
+      console.log('[BYOK] Gemini API key connection test: SUCCESS');
+      return res.json({
+        success: true,
+        message: 'Gemini connection successful'
+      });
+    } else if (response.status === 429) {
+      return res.status(429).json({
+        success: false,
+        error: 'QUOTA_EXCEEDED',
+        message: 'Gemini API quota or rate limit was reached. Please check your Gemini account.'
+      });
+    } else {
+      console.warn('[BYOK] Gemini API key connection test returned status:', response.status);
+      return res.status(401).json({
+        success: false,
+        error: 'AUTH_FAILED',
+        message: 'Invalid Gemini API key'
+      });
+    }
+  } catch (err) {
+    const safeMsg = err.message ? err.message.replace(/key=[^&]+/g, 'key=[REDACTED]') : 'Network error';
+    console.error('[BYOK] Test connection error:', safeMsg);
+    return res.status(500).json({
+      success: false,
+      error: 'NETWORK_ERROR',
+      message: 'Unable to connect to Gemini right now. Please try again.'
+    });
+  }
+});
+
 // POST /api/sessions/analyze
 app.post('/api/sessions/analyze', upload.single('audio'), async (req, res) => {
   try {
@@ -701,11 +798,39 @@ app.post('/api/sessions/analyze', upload.single('audio'), async (req, res) => {
       prepTime = 30,
       speakingDuration = 60,
       duration = 45,
-      language = 'en'
+      language = 'en',
+      transcript,
+      hasSpeech
     } = req.body;
 
     if (!topic) {
       return res.status(400).json({ error: 'Topic is required' });
+    }
+
+    // Defensive validation for silent / no-speech submissions from Solo Practice
+    if (hasSpeech === 'false' || hasSpeech === false) {
+      return res.status(400).json({
+        success: false,
+        error: 'NO_SPEECH_DETECTED'
+      });
+    }
+
+    if (typeof transcript === 'string' && transcript.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'NO_SPEECH_DETECTED'
+      });
+    }
+
+    // Extract user's Gemini API key strictly from header (Full BYOK)
+    const userApiKey = (req.headers['x-gemini-api-key'] || '').trim();
+
+    if (!userApiKey) {
+      return res.status(400).json({
+        success: false,
+        error: 'API_KEY_REQUIRED',
+        message: 'Gemini API key is not configured. Please add your API key in Settings.'
+      });
     }
 
     let audioUrl = '/audio/sample-1.wav';
@@ -720,11 +845,33 @@ app.post('/api/sessions/analyze', upload.single('audio'), async (req, res) => {
       } catch (e) {
         console.error('Error reading uploaded audio:', e);
       }
+    } else {
+      const samplePath = path.join(__dirname, 'public', 'audio', 'sample-1.wav');
+      if (fs.existsSync(samplePath)) {
+        try {
+          audioBuffer = fs.readFileSync(samplePath);
+          mimeType = 'audio/wav';
+        } catch (e) {}
+      }
     }
 
-    // Perform AI analysis
+    // Check if uploaded WAV audio is completely silent
+    if (audioBuffer && (mimeType.includes('wav') || (audioBuffer.length >= 4 && audioBuffer.slice(0, 4).toString() === 'RIFF'))) {
+      if (isWavSilent(audioBuffer)) {
+        return res.status(400).json({
+          success: false,
+          error: 'NO_SPEECH_DETECTED'
+        });
+      }
+    }
+
+    // Perform AI analysis using user's Gemini API key
     let analysis = null;
-    if (audioBuffer && process.env.GEMINI_API_KEY) {
+    let isSilentRecording = false;
+    let isAuthFailure = false;
+    let isQuotaFailure = false;
+
+    if (audioBuffer) {
       try {
         analysis = await analyzeWithGemini({
           audioBuffer,
@@ -732,20 +879,54 @@ app.post('/api/sessions/analyze', upload.single('audio'), async (req, res) => {
           topic,
           category,
           duration,
-          language
+          language,
+          apiKey: userApiKey
         });
+        if (analysis && analysis.noSpeechDetected) {
+          isSilentRecording = true;
+          analysis = null;
+        } else if (analysis && analysis.authError) {
+          isAuthFailure = true;
+          analysis = null;
+        } else if (analysis && analysis.quotaError) {
+          isQuotaFailure = true;
+          analysis = null;
+        }
       } catch (err) {
-        console.error('Gemini analysis error:', err);
+        const safeMsg = err.message ? err.message.replace(/key=[^&]+/g, 'key=[REDACTED]') : 'Error';
+        console.error('[BYOK] Gemini analysis error:', safeMsg);
       }
     }
 
-    // If Gemini was not used or failed, use the intelligent heuristic engine
+    if (isSilentRecording) {
+      return res.status(400).json({
+        success: false,
+        error: 'NO_SPEECH_DETECTED'
+      });
+    }
+
+    if (isQuotaFailure) {
+      return res.status(429).json({
+        success: false,
+        error: 'QUOTA_EXCEEDED',
+        message: 'Gemini API quota or rate limit was reached. Please check your Gemini account.'
+      });
+    }
+
+    if (isAuthFailure) {
+      return res.status(401).json({
+        success: false,
+        error: 'INVALID_API_KEY',
+        message: 'Your Gemini API key appears to be invalid. Please check it in Settings.'
+      });
+    }
+
+    // Never generate fallback score for missing key, invalid key, or failed AI request!
     if (!analysis) {
-      analysis = generateIntelligentAnalysis({
-        topic,
-        category,
-        duration,
-        language
+      return res.status(400).json({
+        success: false,
+        error: 'ANALYSIS_FAILED',
+        message: 'Unable to analyze recording with your Gemini API key. Please check your key in Settings and try again.'
       });
     }
 
@@ -805,7 +986,7 @@ if (!IS_VERCEL) {
     console.log(`  ECHORA AI Speaking Coach Server`);
     console.log(`  Running on http://localhost:${PORT}`);
     console.log(`  Environment: Localhost`);
-    console.log(`  Gemini AI API Key: ${process.env.GEMINI_API_KEY ? 'Configured (Active)' : 'Not set (Using Intelligent Coach Engine)'}`);
+    console.log(`  Architecture: Full BYOK (Bring Your Own Key)`);
     console.log(`  AI Live Interview: Ready on ws://localhost:${PORT}/api/live-interview/ws`);
     console.log(`=========================================`);
   });

@@ -38,7 +38,7 @@
       </button>
       <button class="nav-link" id="nav-btn-dashboard" data-i18n="navDashboard">Practice</button>
       <button class="nav-link" id="nav-btn-history" data-i18n="navHistory">History</button>
-      <button class="nav-link" id="nav-btn-profile" data-i18n="navProfile">Profile</button>
+      <button class="nav-link" id="nav-btn-profile" data-i18n="navSettings">Settings</button>
       
       <!-- Language Switcher (EN / ID) -->
       <div class="lang-switcher" aria-label="Language selection">
@@ -1195,6 +1195,82 @@
           Save Changes
         </button>
       </form>
+
+      <!-- ======================================================================
+           AI PROVIDER (BRING YOUR OWN KEY - FULL BYOK)
+           ====================================================================== -->
+      <div class="byok-settings-section" id="byok-settings-section">
+        <div class="settings-section-header">
+          <div class="settings-section-title" data-i18n="aiProviderTitle">AI Provider</div>
+          <div class="settings-section-subtitle" data-i18n="aiProviderSubtitle">Bring your own Google Gemini API key to power AI feedback & coaching.</div>
+        </div>
+
+        <!-- Provider Selection (Extensible Architecture) -->
+        <div class="form-group" style="margin-top: 16px; margin-bottom: 16px;">
+          <label class="form-label" data-i18n="providerLabel">Provider</label>
+          <div class="byok-provider-badge">
+            <span class="provider-dot"></span>
+            <span class="provider-name">Google Gemini</span>
+            <span class="provider-tag">Bring Your Own Key</span>
+          </div>
+        </div>
+
+        <!-- Saved Key View (Default when key exists) -->
+        <div id="byok-saved-view" style="display: none;">
+          <div class="form-group">
+            <label class="form-label" data-i18n="apiKeyLabel">Gemini API Key</label>
+            <div class="byok-key-display-row">
+              <span class="byok-key-masked" id="byok-key-masked">••••••••••••••••••••</span>
+              <button type="button" class="btn-byok-action" id="btn-byok-toggle-show" data-i18n="showKeyBtn">Show</button>
+              <button type="button" class="btn-byok-action" id="btn-byok-replace" data-i18n="replaceKeyBtn">Replace</button>
+              <button type="button" class="btn-byok-action btn-byok-danger" id="btn-byok-remove" data-i18n="removeKeyBtn">Remove / Clear Key</button>
+            </div>
+            <div id="byok-key-plaintext-box" class="byok-plaintext-box" style="display: none;"></div>
+          </div>
+
+          <div class="byok-actions-row">
+            <button type="button" class="btn-secondary" id="btn-byok-test-saved">
+              <span data-i18n="testConnectionBtn">Test Connection</span>
+            </button>
+            <div class="byok-status-indicator" id="byok-saved-status">
+              <span class="status-dot"></span>
+              <span class="status-text" id="byok-saved-status-text">Connected</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Input / Edit View (Default when NO key configured) -->
+        <div id="byok-edit-view">
+          <div class="form-group">
+            <div class="label-with-hint">
+              <label class="form-label" for="byok-input-key" data-i18n="apiKeyLabel">Gemini API Key</label>
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="byok-hint-link">Get a free Gemini API key ↗</a>
+            </div>
+            <div class="byok-input-wrapper">
+              <input type="password" class="form-input" id="byok-input-key" placeholder="Enter your Gemini API key" autocomplete="off" spellcheck="false" data-i18n-placeholder="apiKeyPlaceholder">
+              <button type="button" class="btn-input-toggle-eye" id="btn-byok-input-toggle-vis" title="Toggle visibility">👁</button>
+            </div>
+          </div>
+
+          <div class="byok-actions-row">
+            <button type="button" class="btn-primary-action" id="btn-byok-save-key" data-i18n="saveKeyBtn">
+              Save / Apply
+            </button>
+            <button type="button" class="btn-secondary" id="btn-byok-test-input" data-i18n="testConnectionBtn">
+              Test Connection
+            </button>
+            <button type="button" class="btn-secondary" id="btn-byok-cancel-edit" style="display: none;" data-i18n="cancelBtn">
+              Cancel
+            </button>
+          </div>
+
+          <div class="byok-status-indicator" id="byok-edit-status" style="margin-top: 12px; display: none;">
+            <span class="status-dot"></span>
+            <span class="status-text" id="byok-edit-status-text"></span>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 
@@ -1203,11 +1279,16 @@
 
   <!-- Application Scripts -->
   <script>
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     window.ECHORA_CONFIG = {
-      WS_URL: 'wss://echora-production.up.railway.app/api/live-interview/ws',
-      API_BASE_URL: 'https://echora-production.up.railway.app'
-  };
-</script>
+      WS_URL: isLocalhost
+        ? ((window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/api/live-interview/ws')
+        : 'wss://echora-production.up.railway.app/api/live-interview/ws',
+      API_BASE_URL: isLocalhost
+        ? ''
+        : 'https://echora-production.up.railway.app'
+    };
+  </script>
   <script src="js/translations.js"></script>
   <script src="js/topics-data.js"></script>
   <script src="js/canvas-waveform.js"></script>
